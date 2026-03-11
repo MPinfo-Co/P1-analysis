@@ -52,14 +52,16 @@ graph LR
     Flash(["🤖 Gemini Flash"])
     Pro(["🧠 Gemini Pro"])
 
-    UC1["匯入日誌"]
-    UC2["篩選規則管理"]
-    UC3["批次 LOG 分析"]
-    UC4["異常問題產出"]
-    UC5["查詢 Issue 清單"]
-    UC6["更新 Issue 狀態"]
-    UC7["查看 MITRE ATT&CK 標籤"]
-    UC8["查看處理建議步驟"]
+    subgraph MPBox["🖥️ MP-Box 平台"]
+        UC1["匯入日誌"]
+        UC2["篩選規則管理"]
+        UC3["批次 LOG 分析"]
+        UC4["異常問題產出"]
+        UC5["查詢 Issue 清單"]
+        UC6["更新 Issue 狀態"]
+        UC7["查看 MITRE ATT&CK 標籤"]
+        UC8["查看處理建議步驟"]
+    end
 
     Syslogng --> UC1
     SysAdmin --> UC1
