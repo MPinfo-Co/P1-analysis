@@ -3,13 +3,15 @@
 ## 圖 1：系統流程與角色關係
 
 ```mermaid
-%%{init: {'flowchart': {'rankSpacing': 35, 'nodeSpacing': 12}}}%%
+%%{init: {'flowchart': {'rankSpacing': 22, 'nodeSpacing': 12}}}%%
 flowchart LR
     subgraph ext[" "]
         direction TB
         extLabel["**外部系統**"]:::zoneLabel
         Syslogng(["**⚙️ SYSLOGNG**"])
     end
+
+    costNote["💰 **每日成本估算**<br/>無篩選　～$5,000<br/>篩選 10%　～$500<br/>篩選 1%　～$50"]:::noteStyle
 
     subgraph MPBox["🖥️ MP-Box"]
         direction TB
@@ -18,10 +20,12 @@ flowchart LR
         D["**⚡ Gemini Flash**<br/>每批產出 JSON（60 個/天）"]
         E["**🧠 Gemini Pro**<br/>整合 60 個 JSON<br/>產出異常問題清單"]
         F["**🤖 資安專家**<br/>異常問題清單 ／ 建議處理方法<br/>處置日誌 ／ 權限指派"]
+        F2["🔮 **資安專家 v2**（規劃中）<br/>儀表板 ／ 一鍵產報告 ／ 知識庫"]:::v2Style
         M["⚙️ 系統管理<br/>帳號 ／ 角色 ／ AI 夥伴"]
 
         A -->|~31,000 筆 / 10 分| C
         C --> D --> E --> F
+        F -.->|規劃中| F2
     end
 
     subgraph ppl[" "]
@@ -32,6 +36,8 @@ flowchart LR
     end
 
     Syslogng -->|篩選後自動推送（每 10 分）| A
+    Syslogng -.- costNote
+    costNote -.- A
     SysAdmin -->|CSV 上傳（預處理篩選後匯入）| A
     SysAdmin -->|設定管理| M
     SecDept -->|查詢 ／ 更新狀態 ／ 諮詢| F
@@ -39,6 +45,8 @@ flowchart LR
     style ext fill:transparent,stroke:transparent
     style ppl fill:transparent,stroke:transparent
     classDef zoneLabel fill:none,stroke:none,font-weight:bold,font-size:15px
+    classDef noteStyle fill:#fffbe6,stroke:#f59e0b,stroke-width:1.5px,color:#92400e
+    classDef v2Style fill:#f0fdf4,stroke:#22c55e,stroke-width:1.5px,color:#166534
 ```
 
 ---
