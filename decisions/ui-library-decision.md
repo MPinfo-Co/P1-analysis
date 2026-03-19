@@ -14,35 +14,65 @@
 
 ## 評估選項
 
-### 選項 A：Tailwind CSS only（純手刻）
+### 主流選項比較
 
-- 完全自由，無任何元件限制
-- 缺點：每個 Button、Dialog、Table 都要從頭寫，各頁面容易風格不一致，維護成本高
-- 不選原因：MP-Box 有大量 UI 元件需求（Table、Tabs、Badge、Dialog、Dropdown...），純手刻費時且難以維持一致性
+| | shadcn/ui | Mantine | Ant Design | Material UI | Tailwind only |
+|--|--|--|--|--|--|
+| 起源 | 美國 | 波蘭 | 中國 | 美國（Google） | — |
+| 符合 v73 風格 | ✅ | ✅ | ❌ 偏藍白企業風 | ❌ 偏 Google 風 | ✅ |
+| 開發速度 | 中 | ✅ 快 | ✅ 快 | 中 | ❌ 慢 |
+| 客製化彈性 | ✅ 高 | 中 | ❌ 難改 | 中 | ✅ 最高 |
+| 長期維護風險 | ✅ 低 | 中 | ❌ | 中 | ✅ 低 |
 
-### 選項 B：shadcn/ui ✅ 選擇
-
-- 元件 source code 複製進專案（非黑盒），可直接修改
-- 基於 Radix UI（無障礙、鍵盤支援完整）
-- 完全用 Tailwind CSS 撰寫，與現有技術棧相容
-- 支援 Tailwind v4
-- 提供 Button、Table、Tabs、Dialog、Badge、Dropdown 等完整元件，開箱即用
-- 新人接手容易，每個元件有文件與範例
-
-### 選項 C：Headless UI
-
-- 只提供行為邏輯（無樣式），樣式全部自己加 Tailwind
-- 介於 A 和 B 之間，但元件數量比 shadcn/ui 少
-- 不選原因：相較 shadcn/ui 省下的時間不多，但失去現成樣式的便利性
+**排除 Ant Design**：外觀偏中國企業風，且元件封裝深、樣式難改。
+**排除 Material UI**：外觀過於 Google 風，需要大量覆寫才能客製化。
+**排除 Tailwind only**：MP-Box 有大量元件需求，純手刻費時且難維持一致性。
 
 ---
 
-## 選擇 shadcn/ui 的理由
+### shadcn/ui vs Mantine 詳細比較
 
-1. **產品化優先**：預設樣式夠專業，不需要大量設計決策就能有一致的 UI
-2. **開發速度**：Phase 1 有 10 個頁面要完成，現成元件直接加速
-3. **可維護性**：元件在 `src/components/ui/` 下，改動透明，無外部 API 依賴
-4. **技術棧一致**：shadcn/ui 底層是 Tailwind + Radix UI，與現有 React 19 + Vite + Tailwind v4 完全相容
+#### 核心差異：元件的存在方式
+
+**shadcn/ui：元件是你的 code**
+```
+npx shadcn add table
+→ 把 table.jsx 複製進 src/components/ui/table.jsx
+→ 可以直接修改 source
+```
+
+**Mantine：元件是套件**
+```
+npm install @mantine/core
+→ 元件在 node_modules 裡
+→ 只能靠 props 或 CSS override 調整
+```
+
+#### 功能比較
+
+| | shadcn/ui | Mantine |
+|--|--|--|
+| 基本元件 | Button、Input、Table、Dialog... | 同左 |
+| 進階元件 | 較少，需自行組合 | DatePicker、RichTextEditor、Carousel、Charts |
+| 內建 Hooks | 無 | useForm、useDisclosure、useMediaQuery... |
+| 樣式系統 | Tailwind CSS（原生） | 自己的 CSS Modules，與 Tailwind 並行 |
+| 深色模式 | 手動設定 | 內建 ColorSchemeProvider |
+| 升級影響 | 幾乎無（code 在 repo 裡） | 版本升級可能有 breaking change |
+
+#### 結論
+
+MP-Box 主要元件需求為 Table、Tabs、Badge、Dialog、篩選器，shadcn/ui 都能覆蓋。
+選 shadcn/ui 的關鍵理由：**元件 source 在自己手上，長期維護成本最低**。
+
+---
+
+### 同生態其他選項（已排除）
+
+- **Radix UI**：shadcn/ui 底層即是 Radix UI，選 shadcn 就已包含
+- **Park UI**：概念同 shadcn 但元件少、社群小，不需考慮
+- **DaisyUI**：風格偏休閒，不適合資安後台
+- **Flowbite**：社群比 shadcn 小很多
+- **React Aria**（Adobe）：純無障礙行為邏輯，無樣式，過於底層
 
 ---
 
