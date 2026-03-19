@@ -66,13 +66,21 @@ MP-Box 主要元件需求為 Table、Tabs、Badge、Dialog、篩選器，shadcn/
 
 ---
 
-### 同生態其他選項（已排除）
+### 其他評估選項（已排除）
 
-- **Radix UI**：shadcn/ui 底層即是 Radix UI，選 shadcn 就已包含
-- **Park UI**：概念同 shadcn 但元件少、社群小，不需考慮
-- **DaisyUI**：風格偏休閒，不適合資安後台
-- **Flowbite**：社群比 shadcn 小很多
-- **React Aria**（Adobe）：純無障礙行為邏輯，無樣式，過於底層
+#### 跟 shadcn/ui 同一個生態
+
+- **Radix UI**：shadcn/ui 底層即是 Radix UI（負責行為邏輯與無障礙），選 shadcn 就已包含，不需單獨考慮
+- **Park UI**：概念同 shadcn（元件複製進專案），但元件數量少、社群規模小，無額外優勢
+
+#### 其他 Tailwind 系
+
+- **DaisyUI**：Tailwind 的 plugin，以 class 名稱驅動（`btn btn-primary`），風格偏休閒/可愛，不適合資安後台
+- **Flowbite**：同樣基於 Tailwind，有 React 版本，但社群與元件數量遠不及 shadcn/ui
+
+#### Adobe 的選項
+
+- **React Aria**（Adobe 出品）：專注無障礙（accessibility），只提供行為邏輯、完全無樣式，比 Headless UI 更底層。適合需要嚴格無障礙規範的產品，目前 MP-Box 不需要考慮
 
 ---
 
