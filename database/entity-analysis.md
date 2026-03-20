@@ -30,8 +30,8 @@
 #### roles
 
 - **用途**：功能權限群組，控制使用者可使用的系統功能。
-- **關鍵欄位**：`id`, `name`(UK), `can_access_ai`, `can_manage_accounts`, `can_manage_roles`, `can_edit_ai`, `can_manage_kb`（**新增**，BOOLEAN，控制知識庫管理權限）
-- **主要關係**：透過 `user_roles` 關聯使用者；透過 `role_ai_partners` 控制可用 AI 夥伴；透過 `role_kb_map` 控制可存取知識庫。
+- **關鍵欄位**：`id`, `name`(UK), `can_access_ai`, `can_use_kb`（**新增**）, `can_manage_accounts`, `can_manage_roles`, `can_edit_ai`, `can_manage_kb`（**新增**）
+- **主要關係**：透過 `user_roles` 關聯使用者；透過 `role_ai_partners` 控制可使用的 AI 夥伴（資安專家等）；透過 `role_kb_map` 控制可存取的知識庫。
 
 **欄位說明**
 
@@ -39,7 +39,8 @@
 |------|------|------|
 | id | INTEGER, PK | 主鍵，角色唯一識別碼 |
 | name | VARCHAR(100), NOT NULL, UK | 角色名稱，不可重複 |
-| can_access_ai | BOOLEAN, NOT NULL, DEFAULT FALSE | 是否允許使用 AI 分析功能 |
+| can_access_ai | BOOLEAN, NOT NULL, DEFAULT FALSE | 是否允許使用 AI 夥伴功能的總開關；具體可用哪些夥伴由 `role_ai_partners` 控制 |
+| can_use_kb | BOOLEAN, NOT NULL, DEFAULT FALSE | **新增**，是否允許查閱知識庫內容；具體可存取哪些知識庫由 `role_kb_map` 控制 |
 | can_manage_accounts | BOOLEAN, NOT NULL, DEFAULT FALSE | 是否允許管理使用者帳號 |
 | can_manage_roles | BOOLEAN, NOT NULL, DEFAULT FALSE | 是否允許管理角色與權限設定 |
 | can_edit_ai | BOOLEAN, NOT NULL, DEFAULT FALSE | 是否允許編輯 AI 夥伴設定 |
@@ -448,6 +449,7 @@
 
 | 資料表 | 欄位 | 型別 | 說明 |
 |--------|------|------|------|
+| `roles` | `can_use_kb` | BOOLEAN, DEFAULT FALSE | 控制角色是否可查閱知識庫內容（總開關） |
 | `roles` | `can_manage_kb` | BOOLEAN, DEFAULT FALSE | 控制角色是否可管理知識庫（新增/編輯/刪除） |
 | `security_events` | `assignee_user_id` | INT, FK → users, NULLABLE | 事件指派負責人 |
 
