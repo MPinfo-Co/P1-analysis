@@ -69,7 +69,7 @@
 
 - **用途**：可自訂 system prompt 的 AI 角色，每個夥伴對應一種分析情境（如資安專家、合規顧問）。
 - **關鍵欄位**：`id`, `name`(UK), `is_builtin`, `is_enabled`, `model_name`, `system_prompt`
-- **主要關係**：透過 `role_ai_partners` 決定哪些角色可使用；透過 `partner_kb_map` 綁定知識庫；為 `analysis_sessions.partner_id` 的 FK 來源。
+- **主要關係**：透過 `role_ai_partners` 決定哪些角色可使用；透過 `partner_kb_map` 綁定知識庫；為 `daily_analysis.partner_id` 的 FK 來源。
 
 **欄位說明**
 
@@ -258,7 +258,7 @@
 | created_at | TIMESTAMP, NOT NULL, DEFAULT CURRENT_TIMESTAMP | 批次建立時間 |
 | expires_at | TIMESTAMP, NULLABLE | 資料過期時間，過期後可自動清除 |
 
-#### analysis_sessions
+#### daily_analysis
 
 - **用途**：一天一筆的分析週期記錄，專注追蹤 PRO / Merge 階段狀態與 token 消耗。Flash 每天執行多次（依時間間隔或累積筆數觸發），每次結果存入 `flash_results`；PRO 每天執行一次，讀取當天所有 `flash_results` 後產出事件清單。Flash 的執行次數與狀態直接從 `flash_results` 查詢，不在此表重複記錄。
 - **關鍵欄位**：`id`, `partner_id`(FK), `analysis_date`, `triggered_by`, `status`, `pro_status`, `merge_status`, `event_count`, `pro_token`
@@ -288,27 +288,27 @@
 
 - **用途**：分析工作階段與日誌批次的多對多關聯表。
 - **關鍵欄位**：`session_id`(PK,FK), `batch_id`(PK,FK)
-- **主要關係**：FK 分別指向 `analysis_sessions` 與 `log_batches`。
+- **主要關係**：FK 分別指向 `daily_analysis` 與 `log_batches`。
 
 **欄位說明**
 
 | 欄位 | 型別 | 說明 |
 |------|------|------|
-| session_id | INTEGER, PK, FK → analysis_sessions | 關聯的分析工作階段 ID |
+| session_id | INTEGER, PK, FK → daily_analysis | 關聯的分析工作階段 ID |
 | batch_id | INTEGER, PK, FK → log_batches | 關聯的日誌批次 ID |
 
 #### flash_results
 
 - **用途**：Flash 模型的分塊分析中間結果，後續由 PRO 模型合併產出最終事件。
 - **關鍵欄位**：`id`, `session_id`(FK), `batch_id`(FK), `chunk_index`, `chunk_total`, `result_json`(JSON), `token_used`
-- **主要關係**：屬於某個 `analysis_sessions`；關聯某個 `log_batches`。
+- **主要關係**：屬於某個 `daily_analysis`；關聯某個 `log_batches`。
 
 **欄位說明**
 
 | 欄位 | 型別 | 說明 |
 |------|------|------|
 | id | INTEGER, PK | 主鍵，Flash 結果唯一識別碼 |
-| session_id | INTEGER, NOT NULL, FK → analysis_sessions | 所屬分析工作階段 ID |
+| session_id | INTEGER, NOT NULL, FK → daily_analysis | 所屬分析工作階段 ID |
 | batch_id | INTEGER, NULLABLE, FK → log_batches | 對應的日誌批次 ID |
 | chunk_index | INTEGER, NOT NULL, DEFAULT 0 | 分塊索引，標示此結果對應第幾個分塊 |
 | chunk_total | INTEGER, NOT NULL, DEFAULT 1 | 分塊總數 |
@@ -358,8 +358,8 @@
 
 #### security_events
 
-- **用途**：AI 分析產出的安全事件，包含事件描述、嚴重等級、建議措施、MITRE 標籤等完整資訊。
-- **關鍵欄位**：`id`, `session_id`(FK), `title`, `event_type`, `star_rank`, `date_start`, `date_end`, `detection_count`, `affected_summary`, `current_status`, `suggests`(JSON), `mitre_tags`(JSON), `match_key`, `assignee_user_id`（**新增**，FK → users，事件負責人）
+- **用途**：AI 分析產出的安全事件快照，每天一份完整清單。PRO 模型每天執行時輸入當天 flash_results 與前一天的事件清單，判斷哪些是新事件、哪些是前一天事件的延續，並輸出當天版本的完整事件清單，每天的快照獨立保存以便溯源。同一事件若跨日延續，透過 `continued_from` 串接前一天的記錄；查詢某日的完整清單只需篩選 `session_id`。
+- **關鍵欄位**：`id`, `session_id`(FK), `continued_from`(FK, **新增**), `title`, `event_type`, `star_rank`, `date_start`, `date_end`, `detection_count`, `affected_summary`, `current_status`, `suggests`(JSON), `mitre_tags`(JSON), `match_key`, `assignee_user_id`（**新增**，FK → users，事件負責人）
 - **suggests JSON 結構**（擴充）：由原本的字串陣列 `["建議1", "建議2"]` 改為物件陣列，每項包含：
   ```json
   [
@@ -383,14 +383,15 @@
   - `text`：建議措施文字（含操作步驟、溯源說明）
   - `urgency`：優先級，值為 `最推薦` / `次推薦` / `可選`
   - `refs`：相關參考（MITRE ATT&CK 技術編號等）
-- **主要關係**：屬於某個 `analysis_sessions`；擁有多筆 `event_history`（人工處置紀錄）；擁有多筆 `similar_events`（相似案例）；`assignee_user_id` FK 指向 `users`。
+- **主要關係**：屬於某個 `daily_analysis`；擁有多筆 `event_history`（人工處置紀錄）；擁有多筆 `similar_events`（相似案例）；`assignee_user_id` FK 指向 `users`。
 
 **欄位說明**
 
 | 欄位 | 型別 | 說明 |
 |------|------|------|
 | id | INTEGER, PK | 主鍵，安全事件唯一識別碼 |
-| session_id | INTEGER, NULLABLE, FK → analysis_sessions | 產出此事件的分析工作階段 ID |
+| session_id | INTEGER, NULLABLE, FK → daily_analysis | 產出此事件的每日分析 ID，同一 session_id 的所有記錄構成當天的完整事件清單 |
+| continued_from | INTEGER, NULLABLE, FK → security_events | **新增**，若此事件為前一天某事件的延續，指向前一天的事件 ID（`match_key` 相同）；全新事件則為 NULL |
 | title | VARCHAR(500), NOT NULL | 事件標題，簡述安全威脅內容 |
 | event_type | VARCHAR(100), NOT NULL | 事件分類（如入侵偵測、異常登入、惡意程式等） |
 | star_rank | SMALLINT, NOT NULL, DEFAULT 1 | 嚴重等級（1-5 星），數字越大越嚴重 |
@@ -449,6 +450,7 @@
 | `roles` | `can_use_kb` | BOOLEAN, DEFAULT FALSE | 控制角色是否可查閱知識庫內容（總開關） |
 | `roles` | `can_manage_kb` | BOOLEAN, DEFAULT FALSE | 控制角色是否可管理知識庫（新增/編輯/刪除） |
 | `security_events` | `assignee_user_id` | INT, FK → users, NULLABLE | 事件指派負責人 |
+| `security_events` | `continued_from` | INT, FK → security_events, NULLABLE | 跨日延續事件的串接鍵；security_events 採每日快照設計，同一事件每天建新記錄，延續時指向前一天的記錄 ID，全新事件為 NULL |
 
 ### 修改欄位
 
@@ -460,9 +462,9 @@
 
 | 資料表 | 欄位 | 移除原因 |
 |--------|------|---------|
-| `analysis_sessions` | `flash_status` | Flash 每天執行多次（依時間間隔或累積筆數觸發），單一狀態欄位無法表達多次執行狀態；Flash 執行狀態直接從 `flash_results` 筆數與內容查詢 |
-| `analysis_sessions` | `flash_token` | Flash 多次執行的 token 消耗從 `flash_results.token_used` 加總取得，不重複儲存 |
-| `analysis_sessions` | `source_file` | 來源檔案資訊已記錄於 `log_batches.source_file`，透過 `session_batch_map` 可查詢 |
+| `daily_analysis` | `flash_status` | Flash 每天執行多次（依時間間隔或累積筆數觸發），單一狀態欄位無法表達多次執行狀態；Flash 執行狀態直接從 `flash_results` 筆數與內容查詢 |
+| `daily_analysis` | `flash_token` | Flash 多次執行的 token 消耗從 `flash_results.token_used` 加總取得，不重複儲存 |
+| `daily_analysis` | `source_file` | 來源檔案資訊已記錄於 `log_batches.source_file`，透過 `session_batch_map` 可查詢 |
 
 ### 新增實體
 
