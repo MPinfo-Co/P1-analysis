@@ -241,9 +241,9 @@
 
 #### log_batches
 
-- **用途**：原始日誌匯入批次，記錄來源檔案與日誌數量統計。
+- **用途**：原始日誌匯入批次，記錄來源檔案與日誌數量統計。Flash 每 5~10 分鐘觸發一次，每批進來的原始 log 量可達 3~5 萬筆（未經 syslog-ng 前置過濾時）。`filtered_count` 記錄實際送入分析的筆數，待 syslog-ng 過濾上線後兩者將有明顯差距。
 - **關鍵欄位**：`id`, `source_file`, `hosts`, `batch_date`, `raw_log_count`, `filtered_count`, `expires_at`
-- **主要關係**：透過 `session_batch_map` 關聯分析工作階段；被 `flash_results` 引用。
+- **主要關係**：透過 `daily_analysis_batch_map` 關聯每日分析週期；被 `flash_results` 引用。
 
 **欄位說明**
 
@@ -254,15 +254,15 @@
 | hosts | JSON, NOT NULL, DEFAULT '[]' | 此批次涵蓋的機器清單，從每筆 log 的 Host 欄位提取 unique 值自動寫入（如 `["mpdc19-01", "mpdc19-02", "MPCFW"]`） |
 | batch_date | DATE, NOT NULL | 日誌批次對應的日期 |
 | raw_log_count | INTEGER, NOT NULL, DEFAULT 0 | 原始日誌筆數（匯入前） |
-| filtered_count | INTEGER, NOT NULL, DEFAULT 0 | 過濾後的日誌筆數（實際送入分析） |
+| filtered_count | INTEGER, NOT NULL, DEFAULT 0 | 過濾後的日誌筆數（實際送入 Flash 分析）；syslog-ng 前置過濾上線前與 raw_log_count 相同 |
 | created_at | TIMESTAMP, NOT NULL, DEFAULT CURRENT_TIMESTAMP | 批次建立時間 |
 | expires_at | TIMESTAMP, NULLABLE | 資料過期時間，過期後可自動清除 |
 
 #### daily_analysis
 
-- **用途**：一天一筆的分析週期記錄，專注追蹤 PRO / Merge 階段狀態與 token 消耗。Flash 每天執行多次（依時間間隔或累積筆數觸發），每次結果存入 `flash_results`；PRO 每天執行一次，讀取當天所有 `flash_results` 後產出事件清單。Flash 的執行次數與狀態直接從 `flash_results` 查詢，不在此表重複記錄。
+- **用途**：一天一筆的分析週期記錄，專注追蹤 PRO / Merge 階段狀態與 token 消耗。Flash 每 5~10 分鐘觸發一次（或依累積筆數觸發），每次結果存入 `flash_results`；PRO 每天執行一次，讀取當天所有 `flash_results` 加上前一天的事件清單，判斷新事件與延續事件後產出當天版本的完整事件清單。Flash 的執行次數與狀態直接從 `flash_results` 查詢，不在此表重複記錄。
 - **關鍵欄位**：`id`, `partner_id`(FK), `analysis_date`, `triggered_by`, `status`, `pro_status`, `merge_status`, `event_count`, `pro_token`
-- **主要關係**：屬於某個 `ai_partners`；透過 `session_batch_map` 關聯日誌批次；產出多筆 `flash_results` 與 `security_events`。
+- **主要關係**：屬於某個 `ai_partners`；透過 `daily_analysis_batch_map` 關聯日誌批次；產出多筆 `flash_results` 與 `security_events`。
 
 **欄位說明**
 
@@ -284,22 +284,22 @@
 | created_at | TIMESTAMP, NOT NULL, DEFAULT CURRENT_TIMESTAMP | 記錄建立時間 |
 | updated_at | TIMESTAMP, NOT NULL, DEFAULT CURRENT_TIMESTAMP | 記錄最後更新時間 |
 
-#### session_batch_map
+#### daily_analysis_batch_map
 
-- **用途**：分析工作階段與日誌批次的多對多關聯表。
-- **關鍵欄位**：`session_id`(PK,FK), `batch_id`(PK,FK)
+- **用途**：每日分析週期與日誌批次的多對多關聯表，記錄某天的分析週期涵蓋了哪幾批 log。Flash 每 5~10 分鐘觸發一次，一天會產生多個 log_batches，全部掛在同一個 daily_analysis 下。
+- **關鍵欄位**：`daily_analysis_id`(PK,FK), `batch_id`(PK,FK)
 - **主要關係**：FK 分別指向 `daily_analysis` 與 `log_batches`。
 
 **欄位說明**
 
 | 欄位 | 型別 | 說明 |
 |------|------|------|
-| session_id | INTEGER, PK, FK → daily_analysis | 關聯的分析工作階段 ID |
+| daily_analysis_id | INTEGER, PK, FK → daily_analysis | 關聯的每日分析週期 ID |
 | batch_id | INTEGER, PK, FK → log_batches | 關聯的日誌批次 ID |
 
 #### flash_results
 
-- **用途**：Flash 模型的分塊分析中間結果，後續由 PRO 模型合併產出最終事件。
+- **用途**：Flash 模型每次執行的分析中間結果，後續由 PRO 模型彙整產出最終事件清單。每批 log 原始量可達 3~5 萬筆，以每筆平均 250 token 估算可達 750 萬~1,250 萬 token，遠超 Flash 模型 context 上限（如 Gemini 2.5 Flash 為 1M token），因此每批 log 需切分為多個 chunk（建議每 chunk 約 1,000 筆）分次送入 Flash，每次產出一筆 flash_results 記錄。PRO 執行時讀取當天所有 flash_results 彙整分析。
 - **關鍵欄位**：`id`, `session_id`(FK), `batch_id`(FK), `chunk_index`, `chunk_total`, `result_json`(JSON), `token_used`
 - **主要關係**：屬於某個 `daily_analysis`；關聯某個 `log_batches`。
 
@@ -308,14 +308,14 @@
 | 欄位 | 型別 | 說明 |
 |------|------|------|
 | id | INTEGER, PK | 主鍵，Flash 結果唯一識別碼 |
-| session_id | INTEGER, NOT NULL, FK → daily_analysis | 所屬分析工作階段 ID |
+| session_id | INTEGER, NOT NULL, FK → daily_analysis | 所屬每日分析週期 ID |
 | batch_id | INTEGER, NULLABLE, FK → log_batches | 對應的日誌批次 ID |
-| chunk_index | INTEGER, NOT NULL, DEFAULT 0 | 分塊索引，標示此結果對應第幾個分塊 |
-| chunk_total | INTEGER, NOT NULL, DEFAULT 1 | 分塊總數 |
+| chunk_index | INTEGER, NOT NULL, DEFAULT 0 | 此筆結果對應該批 log 的第幾個 chunk（從 0 開始） |
+| chunk_total | INTEGER, NOT NULL, DEFAULT 1 | 該批 log 被切分的 chunk 總數；PRO 可用此欄確認該批所有 chunk 是否都已完成 |
 | result_json | JSON, NOT NULL | Flash 模型回傳的 JSON 分析結果 |
-| token_used | INTEGER, NULLABLE | 此次分塊分析消耗的 token 數量 |
+| token_used | INTEGER, NULLABLE | 此次 chunk 分析消耗的 token 數量；當天所有 flash_results 的 token_used 加總即為當日 Flash 總消耗 |
 | created_at | TIMESTAMP, NOT NULL, DEFAULT CURRENT_TIMESTAMP | 結果建立時間 |
-| expires_at | TIMESTAMP, NULLABLE | 中間結果過期時間，過期後可自動清除 |
+| expires_at | TIMESTAMP, NULLABLE | 中間結果過期時間，PRO 彙整完成後可自動清除 |
 
 #### similar_events（新增）
 
@@ -464,7 +464,7 @@
 |--------|------|---------|
 | `daily_analysis` | `flash_status` | Flash 每天執行多次（依時間間隔或累積筆數觸發），單一狀態欄位無法表達多次執行狀態；Flash 執行狀態直接從 `flash_results` 筆數與內容查詢 |
 | `daily_analysis` | `flash_token` | Flash 多次執行的 token 消耗從 `flash_results.token_used` 加總取得，不重複儲存 |
-| `daily_analysis` | `source_file` | 來源檔案資訊已記錄於 `log_batches.source_file`，透過 `session_batch_map` 可查詢 |
+| `daily_analysis` | `source_file` | 來源檔案資訊已記錄於 `log_batches.source_file`，透過 `daily_analysis_batch_map` 可查詢 |
 
 ### 新增實體
 
