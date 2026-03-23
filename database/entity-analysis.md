@@ -401,7 +401,7 @@
 | affected_summary | VARCHAR(255), NULLABLE | 受影響範圍摘要（如受影響 IP、主機名稱） |
 | affected_detail | TEXT, NULLABLE | 受影響範圍的詳細說明 |
 | current_status | VARCHAR(50), NOT NULL, DEFAULT 'pending' | 事件處理狀態（pending / investigating / resolved / dismissed） |
-| description | TEXT, NULLABLE | 事件的詳細描述，由 AI 產生 |
+| description | TEXT, NULLABLE | 事件摘要，由 PRO 模型產生，對應 UI 的「事件摘要」區塊。必須包含以下兩個段落：`【異常發現】`（具體偵測到的異常行為、數據、受影響對象）與`【風險分析】`（攻擊手法研判、背景脈絡、潛在威脅程度）。PRO 的 system prompt 應強制要求此格式輸出。 |
 | suggests | JSON, NOT NULL, DEFAULT '[]' | 建議措施清單，物件陣列格式（含 text / urgency / refs） |
 | logs | JSON, NOT NULL, DEFAULT '[]' | 相關原始日誌摘錄 |
 | ioc_list | JSON, NOT NULL, DEFAULT '[]' | 入侵指標（IoC）清單，如可疑 IP、檔案雜湊等 |
