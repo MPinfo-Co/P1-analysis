@@ -398,8 +398,8 @@
 | date_start | DATE, NOT NULL | 事件偵測起始日期 |
 | date_end | DATE, NULLABLE | 事件偵測結束日期 |
 | detection_count | INTEGER, NOT NULL, DEFAULT 1 | 相關日誌偵測次數 |
-| affected_summary | VARCHAR(255), NULLABLE | 受影響範圍摘要（如受影響 IP、主機名稱） |
-| affected_detail | TEXT, NULLABLE | 受影響範圍的詳細說明 |
+| affected_summary | VARCHAR(255), NULLABLE | 受影響範圍摘要，顯示於事件清單的 badge。限 20 字以內（單行）。格式：`{主要對象}（{最關鍵補充}）`。範例：`172.16.1.112 → Domain Controllers`、`防火牆邊界（13:30~16:30）` |
+| affected_detail | TEXT, NULLABLE | 受影響範圍詳細說明，顯示於點擊 badge 後的 popover。採半結構化格式，使用【】標籤分段。【受影響對象】與【攻擊行為】為必填；【攻擊來源】（有明確來源才填）與【時間範圍】（有特定時間窗才填）為選填。範例：`【受影響對象】mpdc19-01、mpdc19-02（Domain Controllers）\n【攻擊來源】172.16.1.112（內部主機）\n【攻擊行為】421 次登入失敗（EventID 4625）\n【時間範圍】全日` |
 | current_status | VARCHAR(50), NOT NULL, DEFAULT 'pending' | 事件處理狀態（pending / investigating / resolved / dismissed） |
 | description | TEXT, NULLABLE | 事件摘要，由 PRO 模型產生，對應 UI 的「事件摘要」區塊。必須包含以下兩個段落：`【異常發現】`（具體偵測到的異常行為、數據、受影響對象）與`【風險分析】`（攻擊手法研判、背景脈絡、潛在威脅程度）。PRO 的 system prompt 應強制要求此格式輸出。 |
 | suggests | JSON, NOT NULL, DEFAULT '[]' | 建議措施清單，物件陣列格式（含 text / urgency / refs） |
