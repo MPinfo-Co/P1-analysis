@@ -242,7 +242,7 @@
 #### log_batches
 
 - **用途**：原始日誌匯入批次，記錄來源檔案與日誌數量統計。
-- **關鍵欄位**：`id`, `source_file`, `device_name`, `batch_date`, `raw_log_count`, `filtered_count`, `expires_at`
+- **關鍵欄位**：`id`, `source_file`, `hosts`, `batch_date`, `raw_log_count`, `filtered_count`, `expires_at`
 - **主要關係**：透過 `session_batch_map` 關聯分析工作階段；被 `flash_results` 引用。
 
 **欄位說明**
@@ -251,7 +251,7 @@
 |------|------|------|
 | id | INTEGER, PK | 主鍵，日誌批次唯一識別碼 |
 | source_file | VARCHAR(1000), NOT NULL | 匯入的來源檔案路徑或名稱 |
-| device_name | VARCHAR(255), NULLABLE | 產生日誌的設備名稱 |
+| hosts | JSON, NOT NULL, DEFAULT '[]' | 此批次涵蓋的機器清單，從每筆 log 的 Host 欄位提取 unique 值自動寫入（如 `["mpdc19-01", "mpdc19-02", "MPCFW"]`） |
 | batch_date | DATE, NOT NULL | 日誌批次對應的日期 |
 | raw_log_count | INTEGER, NOT NULL, DEFAULT 0 | 原始日誌筆數（匯入前） |
 | filtered_count | INTEGER, NOT NULL, DEFAULT 0 | 過濾後的日誌筆數（實際送入分析） |
@@ -452,6 +452,12 @@
 | `roles` | `can_use_kb` | BOOLEAN, DEFAULT FALSE | 控制角色是否可查閱知識庫內容（總開關） |
 | `roles` | `can_manage_kb` | BOOLEAN, DEFAULT FALSE | 控制角色是否可管理知識庫（新增/編輯/刪除） |
 | `security_events` | `assignee_user_id` | INT, FK → users, NULLABLE | 事件指派負責人 |
+
+### 修改欄位
+
+| 資料表 | 原欄位 | 新欄位 | 型別 | 說明 |
+|--------|--------|--------|------|------|
+| `log_batches` | `device_name` VARCHAR(255) | `hosts` | JSON, DEFAULT '[]' | 由單一設備名稱改為機器清單 JSON 陣列，因一個 batch 可包含多台機器的 log；匯入時自動從 log 的 Host 欄位提取 unique 值寫入 |
 
 ### 新增實體
 
