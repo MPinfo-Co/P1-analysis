@@ -260,8 +260,8 @@
 
 #### analysis_sessions
 
-- **用途**：一次完整的 AI 分析工作階段，追蹤 Flash / PRO / Merge 各階段狀態與 token 消耗。
-- **關鍵欄位**：`id`, `partner_id`(FK), `analysis_date`, `triggered_by`, `status`, `flash_status`, `pro_status`, `merge_status`, `event_count`, `flash_token`, `pro_token`
+- **用途**：一天一筆的分析週期記錄，專注追蹤 PRO / Merge 階段狀態與 token 消耗。Flash 每天執行多次（依時間間隔或累積筆數觸發），每次結果存入 `flash_results`；PRO 每天執行一次，讀取當天所有 `flash_results` 後產出事件清單。Flash 的執行次數與狀態直接從 `flash_results` 查詢，不在此表重複記錄。
+- **關鍵欄位**：`id`, `partner_id`(FK), `analysis_date`, `triggered_by`, `status`, `pro_status`, `merge_status`, `event_count`, `pro_token`
 - **主要關係**：屬於某個 `ai_partners`；透過 `session_batch_map` 關聯日誌批次；產出多筆 `flash_results` 與 `security_events`。
 
 **欄位說明**
@@ -272,14 +272,11 @@
 | partner_id | INTEGER, NOT NULL, FK → ai_partners | 執行分析的 AI 夥伴 ID |
 | analysis_date | DATE, NOT NULL | 分析對應的日期 |
 | triggered_by | VARCHAR(50), NOT NULL, DEFAULT 'schedule' | 觸發方式（schedule 排程 / manual 手動） |
-| source_file | VARCHAR(1000), NULLABLE | 分析來源檔案路徑 |
 | status | VARCHAR(50), NOT NULL, DEFAULT 'pending' | 整體分析狀態（pending / running / completed / failed） |
-| flash_status | VARCHAR(50), NOT NULL, DEFAULT 'pending' | Flash 模型分析階段狀態 |
 | pro_status | VARCHAR(50), NOT NULL, DEFAULT 'pending' | PRO 模型分析階段狀態 |
 | merge_status | VARCHAR(50), NOT NULL, DEFAULT 'pending' | 合併階段狀態 |
 | total_log_count | INTEGER, NOT NULL, DEFAULT 0 | 此次分析涵蓋的總日誌筆數 |
 | event_count | INTEGER, NOT NULL, DEFAULT 0 | 此次分析產出的安全事件數量 |
-| flash_token | INTEGER, NULLABLE | Flash 模型消耗的 token 數量 |
 | pro_token | INTEGER, NULLABLE | PRO 模型消耗的 token 數量 |
 | error_message | TEXT, NULLABLE | 分析失敗時的錯誤訊息 |
 | started_at | TIMESTAMP, NULLABLE | 分析開始時間 |
@@ -458,6 +455,14 @@
 | 資料表 | 原欄位 | 新欄位 | 型別 | 說明 |
 |--------|--------|--------|------|------|
 | `log_batches` | `device_name` VARCHAR(255) | `hosts` | JSON, DEFAULT '[]' | 由單一設備名稱改為機器清單 JSON 陣列，因一個 batch 可包含多台機器的 log；匯入時自動從 log 的 Host 欄位提取 unique 值寫入 |
+
+### 移除欄位
+
+| 資料表 | 欄位 | 移除原因 |
+|--------|------|---------|
+| `analysis_sessions` | `flash_status` | Flash 每天執行多次（依時間間隔或累積筆數觸發），單一狀態欄位無法表達多次執行狀態；Flash 執行狀態直接從 `flash_results` 筆數與內容查詢 |
+| `analysis_sessions` | `flash_token` | Flash 多次執行的 token 消耗從 `flash_results.token_used` 加總取得，不重複儲存 |
+| `analysis_sessions` | `source_file` | 來源檔案資訊已記錄於 `log_batches.source_file`，透過 `session_batch_map` 可查詢 |
 
 ### 新增實體
 
