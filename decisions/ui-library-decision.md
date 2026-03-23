@@ -25,7 +25,7 @@
 | 長期維護風險 | ✅ 低 | 中 | ❌ | 中 | ✅ 低 |
 
 **排除 Ant Design**：外觀偏中國企業風，且元件封裝深、樣式難改。
-**排除 Material UI**：外觀過於 Google 風，需要大量覆寫才能客製化。
+**排除 Material UI**：外觀過於 Google 風，需要大量覆寫才能客製化。詳見下方 shadcn/ui vs Material UI 補充分析。
 **排除 Tailwind only**：MP-Box 有大量元件需求，純手刻費時且難維持一致性。
 
 ---
@@ -63,6 +63,31 @@ npm install @mantine/core
 
 MP-Box 主要元件需求為 Table、Tabs、Badge、Dialog、篩選器，shadcn/ui 都能覆蓋。
 選 shadcn/ui 的關鍵理由：**元件 source 在自己手上，長期維護成本最低**。
+
+---
+
+### shadcn/ui vs Material UI 補充分析
+
+> 此段為主管提出 Material UI 後的補充評估（2026-03-23）
+
+#### 管控性
+
+| | shadcn/ui | Material UI |
+|--|--|--|
+| 元件存在位置 | repo 內（可直接修改 source） | `node_modules`（只能 override） |
+| 樣式覆寫方式 | Tailwind class，直觀 | `sx` prop、`styled()`、`createTheme` 層層疊加 |
+| 升級風險 | 幾乎無 | 主版本升級常有 breaking change（v4→v5 近乎重寫） |
+
+#### 功能全面性
+
+MUI 元件數量確實多於 shadcn/ui，包含 DataGrid、DateRangePicker、Charts 等進階元件。
+但 MP-Box 核心需求（Table、Tabs、Badge、Dialog、篩選器）shadcn/ui 完全覆蓋。
+缺少的進階元件視需求再引入獨立套件（如 Recharts、react-day-picker），比整包換 MUI 成本低。
+
+#### 結論
+
+MUI 功能較全面，但維護成本高、風格難客製化，不適合 MP-Box 的資安後台設計需求。
+**維持 shadcn/ui 決策不變。**
 
 ---
 
