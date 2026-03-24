@@ -120,3 +120,5 @@ npx shadcn@latest init --defaults
 - Tailwind CSS v4 驗證通過
 - 路徑別名 `@/` 設定完成（vite.config.js + jsconfig.json）
 - 初始元件：`src/components/ui/button.jsx`、`src/lib/utils.js`
+
+<!-- 測試更新：re-request review 流程測試 -->
