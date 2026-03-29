@@ -87,7 +87,7 @@ jobs:
             const sdIssue = await github.rest.issues.create({
               owner: org,
               repo: designRepo,
-              title: epicTitle,
+              title: `[SD] ${epicTitle}`,
               body: [
                 '## 設計範圍',
                 '<!-- 由系統自動從 SA Issue 對應的 SD-WBS.md 複製工作項目清單，勿手動編輯 -->',
@@ -156,6 +156,17 @@ jobs:
               repo: projectRepo,
               issue_number: epicNumber,
               body: updatedEpicBody,
+            });
+
+            // 回填 SA Issue body 的 SD Issue 編號
+            await github.rest.issues.update({
+              owner: org,
+              repo: analysisRepo,
+              issue_number: saNumber,
+              body: saIssue.data.body.replace(
+                /SD Issue：P1-design #（merge 後自動填入）/,
+                `SD Issue：P1-design #${sdNumber}`
+              ),
             });
 
             // 在 SA Issue 留言
