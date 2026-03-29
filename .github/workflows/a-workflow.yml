@@ -66,7 +66,7 @@ jobs:
               const wbsFile = await github.rest.repos.getContent({
                 owner: org,
                 repo: analysisRepo,
-                path: `issue#${saNumber}/SD-WBS.md`,
+                path: `issue-${saNumber}/SD-WBS.md`,
                 ref: 'main',
               });
               wbsContent = Buffer.from(wbsFile.data.content, 'base64').toString('utf8');
