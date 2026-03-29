@@ -1,0 +1,181 @@
+name: A-workflow
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create-sd-issue:
+    if: >
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'issue-')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Create SD Issue + D-Branch, update Epic
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const org = 'MPinfo-Co';
+            const analysisRepo = 'P1-analysis';
+            const designRepo = 'P1-design';
+            const projectRepo = 'P1-project';
+
+            const branchName = context.payload.pull_request.head.ref;
+
+            // 從 branch 名稱取 SA Issue 編號
+            const match = branchName.match(/^issue-(\d+)-/);
+            if (!match) {
+              console.log(`Branch ${branchName} 不符合 issue-N-xxx 格式，跳過`);
+              return;
+            }
+            const saNumber = parseInt(match[1]);
+
+            // 讀取 SA Issue，取得 Epic 編號
+            const saIssue = await github.rest.issues.get({
+              owner: org,
+              repo: analysisRepo,
+              issue_number: saNumber,
+            });
+
+            const saBody = saIssue.data.body || '';
+            const epicMatch = saBody.match(/Epic：P1-project #(\d+)/);
+            if (!epicMatch) {
+              console.log(`SA Issue #${saNumber} body 找不到 Epic 編號，跳過`);
+              return;
+            }
+            const epicNumber = parseInt(epicMatch[1]);
+            const epicTitle = saIssue.data.title;
+
+            // 嘗試讀取 SD-WBS.md（merge 後已在 main）
+            let wbsContent = '<!-- SD-WBS.md 尚未建立，請 SA 補充 -->';
+            try {
+              const wbsFile = await github.rest.repos.getContent({
+                owner: org,
+                repo: analysisRepo,
+                path: `issue#${saNumber}/SD-WBS.md`,
+                ref: 'main',
+              });
+              wbsContent = Buffer.from(wbsFile.data.content, 'base64').toString('utf8');
+            } catch (e) {
+              console.log(`找不到 SD-WBS.md，使用預設內容`);
+            }
+
+            // 產生 D-Branch slug
+            const slug = epicTitle
+              .toLowerCase()
+              .trim()
+              .replace(/['"]/g, '')
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '')
+              .slice(0, 50) || 'issue';
+
+            // 在 P1-design 建立 SD Issue
+            const sdIssue = await github.rest.issues.create({
+              owner: org,
+              repo: designRepo,
+              title: epicTitle,
+              body: [
+                '## 設計範圍',
+                '<!-- 由系統自動從 SA Issue 對應的 SD-WBS.md 複製工作項目清單，勿手動編輯 -->',
+                '',
+                wbsContent,
+                '',
+                '## 關聯項目',
+                `- Epic：P1-project #${epicNumber}`,
+                `- SA Issue：P1-analysis #${saNumber}`,
+                `- SD Issue：P1-design #（本 Issue）`,
+                `- PG Issue：P1-code #（merge 後自動填入）`,
+                `- 階段：SD`,
+              ].join('\n'),
+              labels: ['SD'],
+            });
+
+            const sdNumber = sdIssue.data.number;
+
+            // 回填 SD Issue body 的真實編號
+            await github.rest.issues.update({
+              owner: org,
+              repo: designRepo,
+              issue_number: sdNumber,
+              body: sdIssue.data.body.replace(
+                'SD Issue：P1-design #（本 Issue）',
+                `SD Issue：P1-design #${sdNumber}`
+              ),
+            });
+
+            const dBranchName = `issue-${sdNumber}-${slug}`;
+
+            // 取得 P1-design main SHA
+            const mainRef = await github.rest.git.getRef({
+              owner: org,
+              repo: designRepo,
+              ref: 'heads/main',
+            });
+
+            // 建立 D-Branch
+            try {
+              await github.rest.git.createRef({
+                owner: org,
+                repo: designRepo,
+                ref: `refs/heads/${dBranchName}`,
+                sha: mainRef.data.object.sha,
+              });
+            } catch (e) {
+              if (e.status !== 422) throw e;
+            }
+
+            // 更新 Epic Issue body
+            const epicIssue = await github.rest.issues.get({
+              owner: org,
+              repo: projectRepo,
+              issue_number: epicNumber,
+            });
+
+            const updatedEpicBody = (epicIssue.data.body || '')
+              .replace(
+                /- SD Issue：P1-design #（待建立）/,
+                `- SD Issue：P1-design #${sdNumber}`
+              );
+
+            await github.rest.issues.update({
+              owner: org,
+              repo: projectRepo,
+              issue_number: epicNumber,
+              body: updatedEpicBody,
+            });
+
+            // 在 SA Issue 留言
+            await github.rest.issues.createComment({
+              owner: org,
+              repo: analysisRepo,
+              issue_number: saNumber,
+              body: [
+                `✅ **SA 分析完成，SD Issue 已自動建立**`,
+                `- Issue：[P1-design #${sdNumber}](https://github.com/${org}/${designRepo}/issues/${sdNumber})`,
+                `- 分支：\`${dBranchName}\``,
+                ``,
+                `SD 請至 P1-design 開始系統設計。`,
+              ].join('\n'),
+            });
+
+            // 在 Epic Issue 留言
+            await github.rest.issues.createComment({
+              owner: org,
+              repo: projectRepo,
+              issue_number: epicNumber,
+              body: `📐 SA 分析完成，SD Issue 已建立：[P1-design #${sdNumber}](https://github.com/${org}/${designRepo}/issues/${sdNumber})`,
+            });
