@@ -58,7 +58,14 @@ jobs:
               return;
             }
             const epicNumber = parseInt(epicMatch[1]);
-            const epicTitle = saIssue.data.title;
+
+            // 從 Epic Issue 取乾淨標題（去除 [PM] 前綴）
+            const epicIssue = await github.rest.issues.get({
+              owner: org,
+              repo: projectRepo,
+              issue_number: epicNumber,
+            });
+            const epicTitle = epicIssue.data.title.replace(/^\[PM\]\s*/i, '');
 
             // 嘗試讀取 SD-WBS.md（merge 後已在 main）
             let wbsContent = '<!-- SD-WBS.md 尚未建立，請 SA 補充 -->';
