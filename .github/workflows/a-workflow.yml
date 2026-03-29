@@ -145,13 +145,7 @@ jobs:
               if (e.status !== 422) throw e;
             }
 
-            // 更新 Epic Issue body
-            const epicIssue = await github.rest.issues.get({
-              owner: org,
-              repo: projectRepo,
-              issue_number: epicNumber,
-            });
-
+            // 更新 Epic Issue body（epicIssue 已在上方取得）
             const updatedEpicBody = (epicIssue.data.body || '')
               .replace(
                 /- SD Issue：P1-design #（待建立）/,
