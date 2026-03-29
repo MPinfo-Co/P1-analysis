@@ -102,8 +102,8 @@ jobs:
                 wbsContent,
                 '',
                 '## 關聯項目',
-                `- Epic：P1-project #${epicNumber}`,
-                `- SA Issue：P1-analysis #${saNumber}`,
+                `- Epic：MPinfo-Co/P1-project#${epicNumber}`,
+                `- SA Issue：MPinfo-Co/P1-analysis#${saNumber}`,
                 `- SD Issue：P1-design #（本 Issue）`,
                 `- PG Issue：P1-code #（merge 後自動填入）`,
                 `- 階段：SD`,
@@ -149,7 +149,7 @@ jobs:
             const updatedEpicBody = (epicIssue.data.body || '')
               .replace(
                 /- SD Issue：P1-design #（待建立）/,
-                `- SD Issue：P1-design #${sdNumber}`
+                `- SD Issue：MPinfo-Co/P1-design#${sdNumber}`
               );
 
             await github.rest.issues.update({
@@ -166,7 +166,7 @@ jobs:
               issue_number: saNumber,
               body: saIssue.data.body.replace(
                 /SD Issue：P1-design #（merge 後自動填入）/,
-                `SD Issue：P1-design #${sdNumber}`
+                `SD Issue：MPinfo-Co/P1-design#${sdNumber}`
               ),
             });
 
