@@ -109,6 +109,7 @@ jobs:
                 `- PG Issue：P1-code #（merge 後自動填入）`,
                 `- 階段：SD`,
                 `- 分支：（待填入）`,
+                `- Draft PR：（待建立）`,
               ].join('\n'),
               labels: ['SD'],
             });
@@ -129,15 +130,7 @@ jobs:
 
             const dBranchName = `issue-${sdNumber}-${slug}`;
 
-            // 回填 SD Issue body 的真實編號與分支
-            await github.rest.issues.update({
-              owner: org,
-              repo: designRepo,
-              issue_number: sdNumber,
-              body: sdIssue.data.body
-                .replace('SD Issue：#（本 Issue）', `SD Issue：P1-design #${sdNumber}`)
-                .replace('分支：（待填入）', `分支：\`${dBranchName}\``),
-            });
+            // ← backfill 移到 Draft PR 建立後，見下方
 
             // 取得 P1-design main SHA
             const mainRef = await github.rest.git.getRef({
@@ -200,8 +193,10 @@ jobs:
             });
 
             // 建立 SD Draft PR
+            let sdPrNumber = null;
+            let sdPrUrl = null;
             try {
-              await github.rest.pulls.create({
+              const sdPr = await github.rest.pulls.create({
                 owner: org,
                 repo: designRepo,
                 head: dBranchName,
@@ -217,9 +212,22 @@ jobs:
                   `Closes #${sdNumber}`,
                 ].join('\n'),
               });
+              sdPrNumber = sdPr.data.number;
+              sdPrUrl = sdPr.data.html_url;
             } catch (e) {
               console.log(`SD Draft PR 建立失敗（非阻斷性）：${e.message}`);
             }
+
+            // 回填 SD Issue body：編號 + 分支連結 + Draft PR 連結
+            await github.rest.issues.update({
+              owner: org,
+              repo: designRepo,
+              issue_number: sdNumber,
+              body: sdIssue.data.body
+                .replace('SD Issue：#（本 Issue）', `SD Issue：P1-design #${sdNumber}`)
+                .replace('分支：（待填入）', `分支：[${dBranchName}](https://github.com/${org}/${designRepo}/tree/${dBranchName})`)
+                .replace('Draft PR：（待建立）', sdPrUrl ? `Draft PR：[#${sdPrNumber}](${sdPrUrl})` : 'Draft PR：（未建立）'),
+            });
 
             // 更新 Epic Issue body（epicIssue 已在上方取得）
             const updatedEpicBody = (epicIssue.data.body || '')
