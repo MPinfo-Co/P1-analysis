@@ -8,6 +8,7 @@ on:
 permissions:
   issues: write
   contents: read
+  pull-requests: write
 
 jobs:
   create-sd-issue:
@@ -107,22 +108,12 @@ jobs:
                 `- SD Issue：#（本 Issue）`,
                 `- PG Issue：P1-code #（merge 後自動填入）`,
                 `- 階段：SD`,
+                `- 分支：（待填入）`,
               ].join('\n'),
               labels: ['SD'],
             });
 
             const sdNumber = sdIssue.data.number;
-
-            // 回填 SD Issue body 的真實編號
-            await github.rest.issues.update({
-              owner: org,
-              repo: designRepo,
-              issue_number: sdNumber,
-              body: sdIssue.data.body.replace(
-                'SD Issue：#（本 Issue）',
-                `SD Issue：P1-design #${sdNumber}`
-              ),
-            });
 
             // 將 SD Issue 掛為 Epic 的 sub-issue
             try {
@@ -137,6 +128,16 @@ jobs:
             }
 
             const dBranchName = `issue-${sdNumber}-${slug}`;
+
+            // 回填 SD Issue body 的真實編號與分支
+            await github.rest.issues.update({
+              owner: org,
+              repo: designRepo,
+              issue_number: sdNumber,
+              body: sdIssue.data.body
+                .replace('SD Issue：#（本 Issue）', `SD Issue：P1-design #${sdNumber}`)
+                .replace('分支：（待填入）', `分支：\`${dBranchName}\``),
+            });
 
             // 取得 P1-design main SHA
             const mainRef = await github.rest.git.getRef({
@@ -198,6 +199,28 @@ jobs:
               sha: testPlanCommit.data.sha,
             });
 
+            // 建立 SD Draft PR
+            try {
+              await github.rest.pulls.create({
+                owner: org,
+                repo: designRepo,
+                head: dBranchName,
+                base: 'main',
+                draft: true,
+                title: `[SD] ${epicTitle}`,
+                body: [
+                  '## 關聯項目',
+                  `- Epic：MPinfo-Co/P1-project#${epicNumber}`,
+                  `- SA Issue：MPinfo-Co/P1-analysis#${saNumber}`,
+                  `- SD Issue：MPinfo-Co/P1-design#${sdNumber}`,
+                  '',
+                  `Closes #${sdNumber}`,
+                ].join('\n'),
+              });
+            } catch (e) {
+              console.log(`SD Draft PR 建立失敗（非阻斷性）：${e.message}`);
+            }
+
             // 更新 Epic Issue body（epicIssue 已在上方取得）
             const updatedEpicBody = (epicIssue.data.body || '')
               .replace(
@@ -243,4 +266,13 @@ jobs:
               repo: projectRepo,
               issue_number: epicNumber,
               body: `📐 SA 分析完成，SD Issue 已建立：[P1-design #${sdNumber}](https://github.com/${org}/${designRepo}/issues/${sdNumber})`,
+            });
+
+            // 關閉 SA Issue
+            await github.rest.issues.update({
+              owner: org,
+              repo: analysisRepo,
+              issue_number: saNumber,
+              state: 'closed',
+              state_reason: 'completed',
             });
