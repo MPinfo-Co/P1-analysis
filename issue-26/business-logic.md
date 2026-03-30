@@ -153,8 +153,10 @@ SSB `/filter` 每筆 log 的結構：
 3. 累積所有 log 後，依 chunk 大小（建議每 chunk 約 1000 筆）切分
 4. 每個 chunk 丟入 Gemini Flash 分析
 5. Flash 結果寫入 flash_results（含 chunk_index、chunk_total）
-6. 寫入 log_batches 記錄本次批次元數據（source_info、hosts、筆數）
+6. 寫入 log_batches 記錄本次批次元數據（hosts、筆數、時間範圍）
 ```
+
+> `log_batches` 的來源欄位名稱（`source_file` vs `source_info`）與型別（VARCHAR vs JSON）待 TDD 階段與 entity-analysis.md 對齊確認。
 
 觸發方式：**時間觸發**（每 10 分鐘），觸發間隔可設定於 `.env`。
 
@@ -178,10 +180,19 @@ SSB `/filter` 每筆 log 的結構：
 |---|---|---|
 | 事件標題 | `security_events.title` | |
 | 嚴重度 | `security_events.star_rank` | 1-5 星，顯示為星等圖示 |
-| 狀態 | `security_events.current_status` | 未處理 / 處理中 / 擱置 / 已完成 |
+| 狀態 | `security_events.current_status` | DB 值（英文）對應 UI 顯示（中文）見下方 |
 | 影響範圍摘要 | `security_events.affected_summary` | 單行短摘要，直接顯示於列表 |
 | 影響範圍完整說明 | `security_events.affected_detail` | 點擊摘要後 popover 展開顯示完整內容 |
 | 發生時間 | `security_events.date_start` | |
+
+**`current_status` 對應表：**
+
+| DB 值（英文） | UI 顯示（中文） |
+|---|---|
+| `pending` | 未處理 |
+| `investigating` | 處理中 |
+| `dismissed` | 擱置 |
+| `resolved` | 已完成 |
 
 **排序：** 預設照 `star_rank` 降冪排列（最嚴重優先）
 
@@ -189,11 +200,47 @@ SSB `/filter` 每筆 log 的結構：
 
 | 篩選項目 | 對應欄位 |
 |---|---|
-| 狀態 | `current_status`（未處理 / 處理中 / 擱置 / 已完成） |
+| 狀態 | `current_status` |
 | 關鍵字 | `title`、`affected_summary`（模糊搜尋） |
 | 日期區間 | `date_start`（from / to） |
 
 分頁：每頁預設 20 筆，可設定。
+
+---
+
+## AI 輸出欄位格式規範
+
+Flash 與 Pro 的 prompt 設計必須強制要求以下輸出格式，以確保 DB 欄位能正確儲存並顯示。
+
+### `affected_summary`（影響範圍摘要）
+
+- **長度限制**：20 字以內
+- **格式**：`{主要對象}（{最關鍵補充}）`
+- **範例**：
+  - `172.16.1.112 → Domain Controllers`
+  - `防火牆邊界（13:30~16:30）`
+  - `全域 AD 稽核政策（mpdc19-01/02/hq）`
+
+### `affected_detail`（影響範圍完整說明）
+
+採【】標籤分段的半結構化格式：
+
+```
+【受影響對象】{受影響的設備、帳號、IP 清單}
+【攻擊來源】{攻擊來源 IP 或主機}（有明確來源才填，否則省略此段）
+【攻擊行為】{具體攻擊行為、log 數量、EventID 等}
+【時間範圍】{特定時間窗}（有特定時間窗才填，否則省略此段）
+```
+
+- **必填段落**：【受影響對象】、【攻擊行為】
+- **選填段落**：【攻擊來源】（有明確來源才填）、【時間範圍】（有特定時間窗才填）
+- **範例**：
+  ```
+  【受影響對象】mpdc19-01、mpdc19-02（Domain Controllers）
+  【攻擊來源】172.16.1.112（內部主機）
+  【攻擊行為】421 次登入失敗（EventID 4625）
+  【時間範圍】全日
+  ```
 
 ---
 
@@ -206,8 +253,8 @@ SSB `/filter` 每筆 log 的結構：
 | Flash 觸發機制 | 時間觸發（每 10 分鐘） | 行為可預測，資安產品要求及時性 |
 | MVP 過濾策略 | 僅 REST API search_expression | 不動 SSB 設定，過濾規則在程式碼層調整；時間窗口已將查詢縮限至 ~4.2 萬筆 |
 | 設備層過濾 | MVP 後評估 | 600 萬筆/日的 SSB 儲存壓力是長期問題；規則須重新設計，舊版 CSV 過濾邏輯不適用 |
-| `log_batches.source_file` | 改為 `source_info`（JSON） | 存 SSB logspace + from/to + search_expression，取代檔案路徑 |
 | 影響範圍分兩欄 | `affected_summary` + `affected_detail` | 列表需要短摘要，點擊後才展開完整說明（popover） |
+| `current_status` 儲存方式 | DB 存英文值，UI 顯示中文 | 英文值易於程式判斷與 API 傳輸，中文僅為顯示層轉換 |
 
 > `references/backend-overview.md` 中的 `LOG_FILTERED_PATH` 設定廢棄，
 > 改以 SSB 連線設定（`SSB_BASE_URL`、`SSB_USERNAME`、`SSB_PASSWORD`）取代。
