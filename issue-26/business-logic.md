@@ -31,14 +31,11 @@
 FortiGate / Windows Server / AD Server
   │
   ▼ syslog 協定（UDP/TCP 514）
-syslog-ng（設備層過濾，依 syslogng-filters.md 設定）
-  │
-  ▼ 過濾後 log 存入 logspace
 SSB (syslog-ng Store Box, 192.168.10.48)
-  │
+  │  所有設備 log 存入 logspace（每日約 600 萬筆原始資料）
   ▼ REST API 定時拉取（每 10 分鐘，Celery Beat）
-後端：呼叫 /search/logspace/filter（帶 search_expression 二次過濾）
-  │
+後端：呼叫 /search/logspace/filter（帶 search_expression 過濾）
+  │  每次查詢僅涵蓋最近 10 分鐘（約 4.2 萬筆），search_expression 再次過濾
   ▼ 直接丟入 Flash（不另存 log_entries）
 Gemini 2.5 Flash（每 10 分鐘，分 chunk 分析）
   │  每 chunk 產出一筆 flash_results（JSON）
@@ -93,31 +90,19 @@ GET /api/events → 前端安全事件清單頁
 
 ---
 
-## 兩層過濾機制
+## Log 過濾策略
 
-### 第一層：syslog-ng 設備過濾（已設定，非本 Epic 範圍）
+### MVP 階段：僅使用 REST API search_expression 過濾
 
-依 `references/syslogng-filters.md` 設定，在設備端過濾：
-- FortiGate：保留 warning 以上 / 特定 logid / deny|block 動作
-- Windows Server：保留資安相關 EventID 白名單（4624, 4625, 4648...）
-- 預估過濾率：原始 180 萬筆 → 保留約 1~2 萬筆
+每次 Celery Flash Task 帶入 `from`/`to` 時間範圍，將查詢範圍縮限至最近 10 分鐘（約 4.2 萬筆），再由 `search_expression` 過濾出資安相關 log。
 
-### 第二層：SSB API search_expression（本 Epic 實作）
+**search_expression 規則須重新設計**，不沿用舊版 CSV 分析結果（格式不同、欄位對應不適用）。SD 階段需根據實際 syslog 欄位結構定義具體過濾條件，方向參考：
+- FortiGate：保留 warning 以上嚴重度、deny/block 動作
+- Windows Server：保留資安相關 EventID（4624, 4625, 4648 等）
 
-呼叫 SSB API 時帶入 `search_expression`，在 API 層再次過濾，確保拉回的資料都是需要的。
+### 後續優化（MVP 後評估）：加入設備層過濾
 
-FortiGate 範例：
-```
-level(warning..emerg) or match("action=(?:deny|block)" value("MESSAGE"))
-```
-
-Windows 範例：
-```
-nvpair:.sdata.win@18372.4.event_id=4625 or nvpair:.sdata.win@18372.4.event_id=4624
-```
-
-> search_expression 語法與 SSB Web UI 相同，支援 AND / OR / 萬用字元。
-> 完整過濾條件由 SD 依 syslogng-filters.md 轉換為 SSB 語法後寫入設定。
+每日 600 萬筆原始資料全數存入 logspace，長期會造成 SSB 儲存壓力。待 MVP 驗證過濾規則後，評估在設備層（syslog-ng）設定前置過濾，將存入 logspace 的資料量降至 6~12 萬筆/日（預估 1-2% 為資安相關）。此階段規則需重新設計，舊版 `references/syslogng-filters.md` 僅供方向參考。
 
 ---
 
@@ -171,7 +156,7 @@ SSB `/filter` 每筆 log 的結構：
 6. 寫入 log_batches 記錄本次批次元數據（source_info、hosts、筆數）
 ```
 
-觸發方式：**時間觸發**（每 10 分鐘），觸發間隔可設定於 `.env` 或 pipeline 設定表。
+觸發方式：**時間觸發**（每 10 分鐘），觸發間隔可設定於 `.env`。
 
 ### Pro Task（每日一次，預設凌晨 02:00，可設定）
 
@@ -219,6 +204,8 @@ SSB `/filter` 每筆 log 的結構：
 | Log 來源 | SSB REST API | 不需要 backend 與 syslog-ng 在同一台機器 |
 | 個別 log 是否存 DB | 否 | 量太大，直接流過 Flash，摘錄存於 `security_events.logs` |
 | Flash 觸發機制 | 時間觸發（每 10 分鐘） | 行為可預測，資安產品要求及時性 |
+| MVP 過濾策略 | 僅 REST API search_expression | 不動 SSB 設定，過濾規則在程式碼層調整；時間窗口已將查詢縮限至 ~4.2 萬筆 |
+| 設備層過濾 | MVP 後評估 | 600 萬筆/日的 SSB 儲存壓力是長期問題；規則須重新設計，舊版 CSV 過濾邏輯不適用 |
 | `log_batches.source_file` | 改為 `source_info`（JSON） | 存 SSB logspace + from/to + search_expression，取代檔案路徑 |
 | 影響範圍分兩欄 | `affected_summary` + `affected_detail` | 列表需要短摘要，點擊後才展開完整說明（popover） |
 
