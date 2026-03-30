@@ -104,7 +104,7 @@ jobs:
                 '## 關聯項目',
                 `- Epic：MPinfo-Co/P1-project#${epicNumber}`,
                 `- SA Issue：MPinfo-Co/P1-analysis#${saNumber}`,
-                `- SD Issue：P1-design #（本 Issue）`,
+                `- SD Issue：#（本 Issue）`,
                 `- PG Issue：P1-code #（merge 後自動填入）`,
                 `- 階段：SD`,
               ].join('\n'),
@@ -119,7 +119,7 @@ jobs:
               repo: designRepo,
               issue_number: sdNumber,
               body: sdIssue.data.body.replace(
-                'SD Issue：P1-design #（本 Issue）',
+                'SD Issue：#（本 Issue）',
                 `SD Issue：P1-design #${sdNumber}`
               ),
             });
