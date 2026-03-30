@@ -124,6 +124,18 @@ jobs:
               ),
             });
 
+            // 將 SD Issue 掛為 Epic 的 sub-issue
+            try {
+              await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
+                owner: org,
+                repo: projectRepo,
+                issue_number: epicNumber,
+                sub_issue_id: sdIssue.data.id,
+              });
+            } catch (e) {
+              console.log(`Sub-issue 關聯建立失敗（非阻斷性）：${e.message}`);
+            }
+
             const dBranchName = `issue-${sdNumber}-${slug}`;
 
             // 取得 P1-design main SHA
@@ -144,6 +156,47 @@ jobs:
             } catch (e) {
               if (e.status !== 422) throw e;
             }
+
+            // Scaffold TestPlan 檔案
+            const testPlanContent = [
+              `# TestPlan：[SD] ${epicTitle}`,
+              '',
+              '## 測試案例',
+              '| ID | 類型 | 前置條件 | 操作 | 預期結果 |',
+              '|----|------|---------|------|---------|',
+              '',
+              '> 最低要求：每個 API 至少一個成功案例（2xx）+ 一個失敗案例（4xx/5xx）；每個畫面至少一個主流程案例',
+              '',
+            ].join('\n');
+
+            const testPlanTree = await github.rest.git.createTree({
+              owner: org,
+              repo: designRepo,
+              base_tree: mainRef.data.object.sha,
+              tree: [
+                {
+                  path: `TestPlan/issue-${sdNumber}.md`,
+                  mode: '100644',
+                  type: 'blob',
+                  content: testPlanContent,
+                },
+              ],
+            });
+
+            const testPlanCommit = await github.rest.git.createCommit({
+              owner: org,
+              repo: designRepo,
+              message: `chore(issue-${sdNumber}): scaffold TestPlan 檔案`,
+              tree: testPlanTree.data.sha,
+              parents: [mainRef.data.object.sha],
+            });
+
+            await github.rest.git.updateRef({
+              owner: org,
+              repo: designRepo,
+              ref: `heads/${dBranchName}`,
+              sha: testPlanCommit.data.sha,
+            });
 
             // 更新 Epic Issue body（epicIssue 已在上方取得）
             const updatedEpicBody = (epicIssue.data.body || '')
