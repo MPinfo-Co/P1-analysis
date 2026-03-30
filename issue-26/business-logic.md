@@ -19,8 +19,8 @@
 **主流程：**
 1. 資安專家登入系統
 2. 點擊 AI 夥伴（資安專家）進入安全事件清單頁
-3. 清單顯示今日 AI 分析產出的所有安全事件
-4. 依嚴重度、狀態、關鍵字、日期篩選，縮小範圍
+3. 清單顯示今日 AI 分析產出的所有安全事件，預設照嚴重度（星等）降冪排列
+4. 依狀態、關鍵字、日期篩選，縮小範圍
 5. 點擊事件進入詳情頁（詳情頁屬 Epic 2 範圍）
 
 ---
@@ -61,14 +61,25 @@ GET /api/events → 前端安全事件清單頁
 
 | 項目 | 值 |
 |---|---|
-| Base URL | `https://192.168.10.48/api/4/` |
-| 認證方式 | POST `/login`，body: `username=&password=`，回傳 `AUTHENTICATION_TOKEN` |
+| Base URL | `https://192.168.10.48/api/5/`（版本待部署時確認） |
+| 認證方式 | POST `/login`，body: `username=&password=`，回傳結構見下方 |
 | 請求 header | `Cookie: AUTHENTICATION_TOKEN=<token>` |
 | SSL | 自簽憑證，需 `verify=False` |
 | Session 管理 | Token 有效至 session timeout 或主動 `/logout`；需實作自動重新登入 |
+| 暴力攻擊保護 | 10 次錯誤登入 / 60 秒 → port 443 封鎖 5 分鐘；Celery Task 重試策略須避免觸發 |
 | 主要 endpoint | `GET /search/logspace/filter/<logspace_name>` |
 | Logspace 名稱 | **待確認**（PG 階段執行 `/search/logspace/list_logspaces` 取得） |
 | 帳號密碼 | **待確認**（部署時設定於 `.env`，不寫入程式碼） |
+
+**所有 API 回傳結構：**
+
+```json
+{
+  "result": <實際資料>,
+  "error": { "code": null, "message": null },
+  "warnings": []
+}
+```
 
 **拉取參數：**
 
@@ -181,16 +192,18 @@ SSB `/filter` 每筆 log 的結構：
 | 欄位 | 來源 | 說明 |
 |---|---|---|
 | 事件標題 | `security_events.title` | |
-| 嚴重度 | `security_events.star_rank` | 1-5 星，顯示為 badge |
+| 嚴重度 | `security_events.star_rank` | 1-5 星，顯示為星等圖示 |
 | 狀態 | `security_events.current_status` | 未處理 / 處理中 / 擱置 / 已完成 |
-| 受影響範圍 | `security_events.affected_summary` | 單行摘要 |
+| 影響範圍摘要 | `security_events.affected_summary` | 單行短摘要，直接顯示於列表 |
+| 影響範圍完整說明 | `security_events.affected_detail` | 點擊摘要後 popover 展開顯示完整內容 |
 | 發生時間 | `security_events.date_start` | |
+
+**排序：** 預設照 `star_rank` 降冪排列（最嚴重優先）
 
 **篩選條件：**
 
 | 篩選項目 | 對應欄位 |
 |---|---|
-| 嚴重度 | `star_rank`（1-5 星多選） |
 | 狀態 | `current_status`（未處理 / 處理中 / 擱置 / 已完成） |
 | 關鍵字 | `title`、`affected_summary`（模糊搜尋） |
 | 日期區間 | `date_start`（from / to） |
@@ -207,6 +220,7 @@ SSB `/filter` 每筆 log 的結構：
 | 個別 log 是否存 DB | 否 | 量太大，直接流過 Flash，摘錄存於 `security_events.logs` |
 | Flash 觸發機制 | 時間觸發（每 10 分鐘） | 行為可預測，資安產品要求及時性 |
 | `log_batches.source_file` | 改為 `source_info`（JSON） | 存 SSB logspace + from/to + search_expression，取代檔案路徑 |
+| 影響範圍分兩欄 | `affected_summary` + `affected_detail` | 列表需要短摘要，點擊後才展開完整說明（popover） |
 
 > `references/backend-overview.md` 中的 `LOG_FILTERED_PATH` 設定廢棄，
 > 改以 SSB 連線設定（`SSB_BASE_URL`、`SSB_USERNAME`、`SSB_PASSWORD`）取代。
