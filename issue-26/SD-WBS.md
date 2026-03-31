@@ -4,9 +4,9 @@
 | # | 類型 | 說明 |
 |---|------|------|
 | 1 | Schema | 設計 `flash_results` table（Flash 每 chunk 的暫存結果） |
-| 2 | Schema | 設計 `log_batches` table（每次 SSB 拉取的批次元數據；來源欄位名稱與型別請對齊 entity-analysis.md） |
-| 3 | Schema | 設計 `security_events` table（每日事件快照；欄位定義請對齊 entity-analysis.md，含 `affected_summary` / `affected_detail` / `assignee_user_id` 等） |
-| 4 | Schema | 設計 `daily_analysis` table（Pro 彙整狀態追蹤；欄位定義請對齊 entity-analysis.md） |
+| 2 | Schema | 設計 `log_batches` table（每次 SSB 拉取的批次元數據；來源欄位名稱與型別請對齊 schema.md） |
+| 3 | Schema | 設計 `security_events` table（每日事件快照；欄位定義請對齊 schema.md，含 `affected_summary` / `affected_detail` / `assignee_user_id` 等） |
+| 4 | Schema | 設計 `daily_analysis` table（Pro 彙整狀態追蹤；欄位定義請對齊 schema.md） |
 | 5 | Schema | 撰寫 Alembic migration（以上 4 表） |
 | 6 | API | 設計 SSB API Client 模組（認證流程、自動重登、分頁拉取策略、避免觸發暴力保護機制） |
 | 7 | API | 設計 search_expression 過濾規則（從零設計，不沿用舊版 CSV 過濾邏輯；依實際 syslog 欄位結構定義 FortiGate + Windows 條件） |
@@ -20,7 +20,7 @@
 | 15 | 其他 | 定義本 Epic 新增的 .env 設定項（SSB 連線、Gemini、排程參數） |
 
 ## 備註
-- **Schema 設計請以 `P1-design/schema/entity-analysis.md` 為準**，本 WBS 僅列工作範圍，欄位細節以該文件為主
+- **Schema 設計請以 `P1-design/schema/schema.md` 為準**，本 WBS 僅列工作範圍，欄位細節以該文件為主
 - Logspace 名稱待 PG 部署時由 `/search/logspace/list_logspaces` 確認
 - SSB 帳號密碼僅寫入 `.env`，不進程式碼
 - SSB 暴力保護：10 次錯誤登入 / 60 秒 → 封鎖 5 分鐘，Flash Task 重試邏輯需注意
