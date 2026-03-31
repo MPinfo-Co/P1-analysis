@@ -156,7 +156,7 @@ SSB `/filter` 每筆 log 的結構：
 6. 寫入 log_batches 記錄本次批次元數據（hosts、筆數、時間範圍）
 ```
 
-> `log_batches` 的來源欄位名稱（`source_file` vs `source_info`）與型別（VARCHAR vs JSON）待 TDD 階段與 entity-analysis.md 對齊確認。
+> `log_batches` 的來源欄位名稱（`source_file` vs `source_info`）與型別（VARCHAR vs JSON）待 TDD 階段與 schema.md 對齊確認。
 
 觸發方式：**時間觸發**（每 10 分鐘），觸發間隔可設定於 `.env`。
 
