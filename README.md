@@ -1,5 +1,7 @@
 # P1-analysis — 需求分析（SA）
 
+> [← 回到 P1 總導覽](https://github.com/MPinfo-Co/P1-project#readme)
+
 P1 產品的系統分析文件庫。每個功能需求對應一個 Issue 資料夾。
 
 ## 在四 Repo 流程中的角色
@@ -43,4 +45,4 @@ P1-analysis/
 
 ## 完整工作流程規範
 
-請參考 [P1-project/docs/github-workflow/quick-start.md](https://github.com/MPinfo-Co/P1-project/blob/main/docs/github-workflow/quick-start.md)
+請參考 [P1-project/docs/workflow/quick-start.md](https://github.com/MPinfo-Co/P1-project/blob/main/docs/workflow/quick-start.md)
