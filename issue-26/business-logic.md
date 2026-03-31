@@ -37,13 +37,13 @@ SSB (syslog-ng Store Box, 192.168.10.48)
 後端：呼叫 /search/logspace/filter（帶 search_expression 過濾）
   │  每次查詢僅涵蓋最近 10 分鐘（約 4.2 萬筆），search_expression 再次過濾
   ▼ 直接丟入 Flash（不另存 log_entries）
-Gemini 2.5 Flash（每 10 分鐘，分 chunk 分析）
+Claude Haiku（每 10 分鐘，分 chunk 分析）
   │  每 chunk 產出一筆 flash_results（JSON）
   ▼
 flash_results table（DB 暫存當天所有 Flash 結果）
   │
   ▼ 每日凌晨，Celery Beat 觸發
-Gemini 2.5 Pro（讀取當天所有 flash_results + 前一天事件清單）
+Claude Sonnet（讀取當天所有 flash_results + 前一天事件清單）
   │  去重彙整，判斷新事件 vs 延續事件
   ▼
 security_events table（每日快照寫入）
@@ -151,12 +151,10 @@ SSB `/filter` 每筆 log 的結構：
 1. 呼叫 SSB API，from = 上次拉取 to timestamp（從 log_batches 取）
 2. 分頁拉取（每次 limit=1000）直到無更多資料
 3. 累積所有 log 後，依 chunk 大小（建議每 chunk 約 1000 筆）切分
-4. 每個 chunk 丟入 Gemini Flash 分析
+4. 每個 chunk 丟入 Claude Haiku 分析
 5. Flash 結果寫入 flash_results（含 chunk_index、chunk_total）
 6. 寫入 log_batches 記錄本次批次元數據（hosts、筆數、時間範圍）
 ```
-
-> `log_batches` 的來源欄位名稱（`source_file` vs `source_info`）與型別（VARCHAR vs JSON）待 TDD 階段與 schema.md 對齊確認。
 
 觸發方式：**時間觸發**（每 10 分鐘），觸發間隔可設定於 `.env`。
 
@@ -165,7 +163,7 @@ SSB `/filter` 每筆 log 的結構：
 ```
 1. 讀取當天所有 flash_results
 2. 讀取前一天的 security_events（用於判斷延續事件）
-3. 丟入 Gemini Pro 彙整去重
+3. 丟入 Claude Sonnet 彙整去重
 4. Pro 輸出寫入 security_events（每日快照）
 5. 更新 daily_analysis 狀態
 ```
