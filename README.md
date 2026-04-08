@@ -11,7 +11,7 @@ P1-project（PM）
     └─ P-workflow 自動建立 SA Issue + A-Branch + Draft PR
         └─ P1-analysis（SA）  ← 你在這裡
             └─ SA merge → A-workflow 自動建立 SD Issue
-                └─ P1-design（SD）→ P1-code（PG／AI
+                └─ P1-design（SD）→ P1-code（PG／AI）
 ```
 
 ## 目錄結構
