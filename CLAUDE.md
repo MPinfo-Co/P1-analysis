@@ -37,10 +37,10 @@ SA Issue 由 P1-project 的 p-workflow 自動建立，**不可手動建立**。
 ## Commit 格式
 
 ```
-{type}({scope}): 說明
+{type}: 工作說明
 ```
 
-範例：`docs(issue-4): 完成請假申請 SA 分析`
+範例：`docs: 完成請假申請 SA 分析`
 
 ## 完整流程
 
