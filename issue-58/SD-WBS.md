@@ -3,6 +3,10 @@
 ## 工作項目
 | # | 類型 | 說明 |
 |---|------|------|
+| 1 | 其他 | 驗證 SA issue body 結構（無功能說明 section） |
+| 2 | 其他 | 驗證 business-logic.md 包含 Epic body |
+| 3 | 其他 | 驗證 SD issue body 包含 business-logic.md 內容 |
+| 4 | 其他 | 驗證 PG issue 關聯項目連結完整性 |
 
 ## 備註
-<!-- 有無特殊限制、相依關係、需 SD 決策的設計點 -->
+此為 workflow 改造驗證用 WBS，無實際 API / Schema / 畫面異動。
