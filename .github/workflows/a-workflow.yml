@@ -122,13 +122,19 @@ jobs:
                 wbsContent,
                 '',
                 '## 關聯項目',
+                '',
+                '### 工作狀態',
+                `- 階段：SD`,
+                `- 分支：（待填入）`,
+                `- Draft PR：（待建立）`,
+                '',
+                '### 關聯 Issue',
                 `- Epic：MPinfo-Co/P1-project#${epicNumber}`,
                 `- SA Issue：MPinfo-Co/P1-analysis#${saNumber}`,
                 `- SD Issue：#（本 Issue）`,
                 `- PG Issue：P1-code #（merge 後自動填入）`,
-                `- 階段：SD`,
-                `- 分支：（待填入）`,
-                `- Draft PR：（待建立）`,
+                '',
+                '### 關聯檔案',
                 `- business-logic.md：[issue-${saNumber}/business-logic.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/business-logic.md)`,
                 `- SD-WBS.md：[issue-${saNumber}/SD-WBS.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/SD-WBS.md)`,
                 `- TestPlan：（待填入）`,
@@ -225,14 +231,7 @@ jobs:
                 base: 'main',
                 draft: true,
                 title: `[SD] ${epicTitle}`,
-                body: [
-                  '## 關聯項目',
-                  `- Epic：MPinfo-Co/P1-project#${epicNumber}`,
-                  `- SA Issue：MPinfo-Co/P1-analysis#${saNumber}`,
-                  `- SD Issue：MPinfo-Co/P1-design#${sdNumber}`,
-                  '',
-                  `Closes #${sdNumber}`,
-                ].join('\n'),
+                body: `Closes #${sdNumber}`,
               });
               sdPrNumber = sdPr.data.number;
               sdPrUrl = sdPr.data.html_url;
@@ -266,15 +265,14 @@ jobs:
               body: updatedEpicBody,
             });
 
-            // 回填 SA Issue body 的 SD Issue 編號
+            // 回填 SA Issue body：SD Issue 編號 + branch ref → main
             await github.rest.issues.update({
               owner: org,
               repo: analysisRepo,
               issue_number: saNumber,
-              body: saIssue.data.body.replace(
-                /SD Issue：P1-design #（merge 後自動填入）/,
-                `SD Issue：MPinfo-Co/P1-design#${sdNumber}`
-              ),
+              body: saIssue.data.body
+                .replace(/SD Issue：P1-design #（merge 後自動填入）/, `SD Issue：MPinfo-Co/P1-design#${sdNumber}`)
+                .replace(new RegExp(`/blob/${branchName}/`, 'g'), '/blob/main/'),
             });
 
             // 在 SA Issue 留言
