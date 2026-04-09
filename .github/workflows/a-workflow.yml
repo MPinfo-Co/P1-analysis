@@ -83,6 +83,20 @@ jobs:
               console.log(`找不到 SD-WBS.md，使用預設內容`);
             }
 
+            // 嘗試讀取 business-logic.md（merge 後已在 main）
+            let businessLogicContent = '<!-- business-logic.md 尚未建立，請 SA 補充 -->';
+            try {
+              const blFile = await github.rest.repos.getContent({
+                owner: org,
+                repo: analysisRepo,
+                path: `issue-${saNumber}/business-logic.md`,
+                ref: 'main',
+              });
+              businessLogicContent = Buffer.from(blFile.data.content, 'base64').toString('utf8');
+            } catch (e) {
+              console.log(`找不到 business-logic.md，使用預設內容`);
+            }
+
             // 產生 D-Branch slug
             const slug = epicTitle
               .toLowerCase()
@@ -98,6 +112,10 @@ jobs:
               repo: designRepo,
               title: `[SD] ${epicTitle}`,
               body: [
+                '## 功能說明',
+                '',
+                businessLogicContent,
+                '',
                 '## 設計範圍',
                 '<!-- 由系統自動從 SA Issue 對應的 SD-WBS.md 複製工作項目清單，勿手動編輯 -->',
                 '',
@@ -111,6 +129,9 @@ jobs:
                 `- 階段：SD`,
                 `- 分支：（待填入）`,
                 `- Draft PR：（待建立）`,
+                `- business-logic.md：[issue-${saNumber}/business-logic.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/business-logic.md)`,
+                `- SD-WBS.md：[issue-${saNumber}/SD-WBS.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/SD-WBS.md)`,
+                `- TestPlan：（待填入）`,
               ].join('\n'),
               labels: ['SD'],
             });
@@ -227,7 +248,8 @@ jobs:
               body: sdIssue.data.body
                 .replace('SD Issue：#（本 Issue）', `SD Issue：P1-design #${sdNumber}`)
                 .replace('分支：（待填入）', `分支：[${dBranchName}](https://github.com/${org}/${designRepo}/tree/${dBranchName})`)
-                .replace('Draft PR：（待建立）', sdPrUrl ? `Draft PR：[#${sdPrNumber}](${sdPrUrl})` : 'Draft PR：（未建立）'),
+                .replace('Draft PR：（待建立）', sdPrUrl ? `Draft PR：[#${sdPrNumber}](${sdPrUrl})` : 'Draft PR：（未建立）')
+                .replace('TestPlan：（待填入）', `TestPlan：[TestPlan/issue-${sdNumber}.md](https://github.com/${org}/${designRepo}/blob/${dBranchName}/TestPlan/issue-${sdNumber}.md)`),
             });
 
             // 更新 Epic Issue body（epicIssue 已在上方取得）
