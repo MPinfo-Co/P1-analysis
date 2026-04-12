@@ -69,20 +69,6 @@ jobs:
             });
             const epicTitle = epicIssue.data.title.replace(/^\[PM\]\s*/i, '');
 
-            // 嘗試讀取 SD-WBS.md（merge 後已在 main）
-            let wbsContent = '<!-- SD-WBS.md 尚未建立，請 SA 補充 -->';
-            try {
-              const wbsFile = await github.rest.repos.getContent({
-                owner: org,
-                repo: analysisRepo,
-                path: `issue-${saNumber}/SD-WBS.md`,
-                ref: 'main',
-              });
-              wbsContent = Buffer.from(wbsFile.data.content, 'base64').toString('utf8');
-            } catch (e) {
-              console.log(`找不到 SD-WBS.md，使用預設內容`);
-            }
-
             // 嘗試讀取 business-logic.md（merge 後已在 main）
             let businessLogicContent = '<!-- business-logic.md 尚未建立，請 SA 補充 -->';
             try {
@@ -117,9 +103,9 @@ jobs:
                 businessLogicContent,
                 '',
                 '## 設計範圍',
-                '<!-- 由系統自動從 SA Issue 對應的 SD-WBS.md 複製工作項目清單，勿手動編輯 -->',
-                '',
-                wbsContent,
+                '<!-- SD 請填入本次工作範圍 -->',
+                '| # | 類型 | 說明 |',
+                '|---|------|------|',
                 '',
                 '## 關聯項目',
                 '',
@@ -136,7 +122,6 @@ jobs:
                 '',
                 '### 關聯檔案',
                 `- business-logic.md：[issue-${saNumber}/business-logic.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/business-logic.md)`,
-                `- SD-WBS.md：[issue-${saNumber}/SD-WBS.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/SD-WBS.md)`,
                 `- TDD：（待填入）`,
               ].join('\n'),
               labels: ['SD'],
@@ -182,6 +167,10 @@ jobs:
             // Scaffold TDD 檔案
             const tddContent = [
               `# TDD：[SD] ${epicTitle}`,
+              '',
+              '## 本次工作範圍',
+              '| # | 類型 | 說明 |',
+              '|---|------|------|',
               '',
               '## 測試案例',
               '| ID | 類型 | 前置條件 | 操作 | 預期結果 |',
