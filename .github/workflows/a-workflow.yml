@@ -137,7 +137,7 @@ jobs:
                 '### 關聯檔案',
                 `- business-logic.md：[issue-${saNumber}/business-logic.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/business-logic.md)`,
                 `- SD-WBS.md：[issue-${saNumber}/SD-WBS.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/SD-WBS.md)`,
-                `- TestPlan：（待填入）`,
+                `- TDD：（待填入）`,
               ].join('\n'),
               labels: ['SD'],
             });
@@ -179,9 +179,9 @@ jobs:
               if (e.status !== 422) throw e;
             }
 
-            // Scaffold TestPlan 檔案
-            const testPlanContent = [
-              `# TestPlan：[SD] ${epicTitle}`,
+            // Scaffold TDD 檔案
+            const tddContent = [
+              `# TDD：[SD] ${epicTitle}`,
               '',
               '## 測試案例',
               '| ID | 類型 | 前置條件 | 操作 | 預期結果 |',
@@ -191,25 +191,25 @@ jobs:
               '',
             ].join('\n');
 
-            const testPlanTree = await github.rest.git.createTree({
+            const tddTree = await github.rest.git.createTree({
               owner: org,
               repo: designRepo,
               base_tree: mainRef.data.object.sha,
               tree: [
                 {
-                  path: `TestPlan/issue-${sdNumber}.md`,
+                  path: `TDD/issue-${sdNumber}.md`,
                   mode: '100644',
                   type: 'blob',
-                  content: testPlanContent,
+                  content: tddContent,
                 },
               ],
             });
 
-            const testPlanCommit = await github.rest.git.createCommit({
+            const tddCommit = await github.rest.git.createCommit({
               owner: org,
               repo: designRepo,
-              message: `chore(issue-${sdNumber}): scaffold TestPlan 檔案`,
-              tree: testPlanTree.data.sha,
+              message: `chore(issue-${sdNumber}): scaffold TDD 檔案`,
+              tree: tddTree.data.sha,
               parents: [mainRef.data.object.sha],
             });
 
@@ -217,7 +217,7 @@ jobs:
               owner: org,
               repo: designRepo,
               ref: `heads/${dBranchName}`,
-              sha: testPlanCommit.data.sha,
+              sha: tddCommit.data.sha,
             });
 
             // 建立 SD Draft PR
@@ -248,7 +248,7 @@ jobs:
                 .replace('SD Issue：#（本 Issue）', `SD Issue：P1-design #${sdNumber}`)
                 .replace('分支：（待填入）', `分支：[${dBranchName}](https://github.com/${org}/${designRepo}/tree/${dBranchName})`)
                 .replace('Draft PR：（待建立）', sdPrUrl ? `Draft PR：[#${sdPrNumber}](${sdPrUrl})` : 'Draft PR：（未建立）')
-                .replace('TestPlan：（待填入）', `TestPlan：[TestPlan/issue-${sdNumber}.md](https://github.com/${org}/${designRepo}/blob/${dBranchName}/TestPlan/issue-${sdNumber}.md)`),
+                .replace('TDD：（待填入）', `TDD：[TDD/issue-${sdNumber}.md](https://github.com/${org}/${designRepo}/blob/${dBranchName}/TDD/issue-${sdNumber}.md)`),
             });
 
             // 更新 Epic Issue body（epicIssue 已在上方取得）

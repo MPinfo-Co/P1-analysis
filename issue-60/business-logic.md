@@ -9,7 +9,7 @@
 - SA issue body 呈現三段式（工作狀態 / 關聯Issue / 關聯檔案）
 - SA branch merge 後連結指向 main
 - SD issue body 三段式，繼承 business-logic.md、SD-WBS.md
-- PG issue body 三段式，含 SpecDiff、TestPlan、TestReport 連結
+- PG issue body 三段式，含 SpecDiff、TDD、TestReport 連結
 - TestReport scaffold 在 P1-code C-Branch 自動建立
 - Draft PR body 只有 Closes #N
 
