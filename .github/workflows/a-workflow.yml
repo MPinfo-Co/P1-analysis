@@ -86,10 +86,9 @@ jobs:
               body: [
                 '## 關聯項目',
                 '',
-                '### 工作狀態',
-                `- 階段：SD`,
-                `- 分支：（待填入）`,
-                `- Draft PR：（待建立）`,
+                '### 工作文件',
+                `- business-logic.md：[issue-${saNumber}/business-logic.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/business-logic.md)`,
+                `- TDD：（待填入）`,
                 '',
                 '### 關聯 Issue',
                 `- Epic：MPinfo-Co/P1-project#${epicNumber}`,
@@ -97,9 +96,10 @@ jobs:
                 `- SD Issue：#（本 Issue）`,
                 `- PG Issue：P1-code #（merge 後自動填入）`,
                 '',
-                '### 關聯檔案',
-                `- business-logic.md：[issue-${saNumber}/business-logic.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/business-logic.md)`,
-                `- TDD：（待填入）`,
+                '### 相關連結',
+                `- 階段：SD`,
+                `- 分支：（待填入）`,
+                `- Draft PR：（待建立）`,
               ].join('\n'),
               labels: ['SD'],
             });
@@ -211,24 +211,10 @@ jobs:
               repo: designRepo,
               issue_number: sdNumber,
               body: sdIssue.data.body
-                .replace('SD Issue：#（本 Issue）', `SD Issue：P1-design #${sdNumber}`)
+                .replace('SD Issue：#（本 Issue）', `SD Issue：#${sdNumber}`)
                 .replace('分支：（待填入）', `分支：[${dBranchName}](https://github.com/${org}/${designRepo}/tree/${dBranchName})`)
                 .replace('Draft PR：（待建立）', sdPrUrl ? `Draft PR：[#${sdPrNumber}](${sdPrUrl})` : 'Draft PR：（未建立）')
                 .replace('TDD：（待填入）', `TDD：[TDD/issue-${sdNumber}.md](https://github.com/${org}/${designRepo}/blob/${dBranchName}/TDD/issue-${sdNumber}.md)`),
-            });
-
-            // 更新 Epic Issue body（epicIssue 已在上方取得）
-            const updatedEpicBody = (epicIssue.data.body || '')
-              .replace(
-                /- SD Issue：P1-design #（待建立）/,
-                `- SD Issue：MPinfo-Co/P1-design#${sdNumber}`
-              );
-
-            await github.rest.issues.update({
-              owner: org,
-              repo: projectRepo,
-              issue_number: epicNumber,
-              body: updatedEpicBody,
             });
 
             // 回填 SA Issue body：SD Issue 編號 + branch ref → main
