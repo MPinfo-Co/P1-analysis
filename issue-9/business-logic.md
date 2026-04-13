@@ -4,12 +4,12 @@
 
 **UC-01：驗證 P0 自動化流程**
 
-| 欄位 | 說明 |
-|------|------|
-| 角色 | PM、SA、SD、PG |
-| 前置條件 | 四條 GitHub Actions workflow 已部署 |
+| 欄位   | 說明                              |
+| ---- | ------------------------------- |
+| 角色   | PM、SA、SD、PG                     |
+| 前置條件 | 四條 GitHub Actions workflow 已部署  |
 | 主要流程 | PM 開 Epic → 系統自動串接 SA → SD → PG |
-| 後置條件 | 每個 Repo 各有對應 Issue 與 Branch |
+| 後置條件 | 每個 Repo 各有對應 Issue 與 Branch     |
 
 ## 流程說明
 
