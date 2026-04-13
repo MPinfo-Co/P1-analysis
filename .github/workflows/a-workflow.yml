@@ -86,7 +86,7 @@ jobs:
               body: [
                 '## 關聯項目',
                 '',
-                '### 工作文件',
+                '### SD 工作文件',
                 `- business-logic.md：[issue-${saNumber}/business-logic.md](https://github.com/${org}/${analysisRepo}/blob/main/issue-${saNumber}/business-logic.md)`,
                 `- TDD：（待填入）`,
                 '',
@@ -97,7 +97,6 @@ jobs:
                 `- PG Issue：P1-code #（merge 後自動填入）`,
                 '',
                 '### 相關連結',
-                `- 階段：SD`,
                 `- 分支：（待填入）`,
                 `- Draft PR：（待建立）`,
               ].join('\n'),
