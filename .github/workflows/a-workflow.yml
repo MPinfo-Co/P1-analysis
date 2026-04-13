@@ -69,20 +69,6 @@ jobs:
             });
             const epicTitle = epicIssue.data.title.replace(/^\[PM\]\s*/i, '');
 
-            // 嘗試讀取 business-logic.md（merge 後已在 main）
-            let businessLogicContent = '<!-- business-logic.md 尚未建立，請 SA 補充 -->';
-            try {
-              const blFile = await github.rest.repos.getContent({
-                owner: org,
-                repo: analysisRepo,
-                path: `issue-${saNumber}/business-logic.md`,
-                ref: 'main',
-              });
-              businessLogicContent = Buffer.from(blFile.data.content, 'base64').toString('utf8');
-            } catch (e) {
-              console.log(`找不到 business-logic.md，使用預設內容`);
-            }
-
             // 產生 D-Branch slug
             const slug = epicTitle
               .toLowerCase()
@@ -98,15 +84,6 @@ jobs:
               repo: designRepo,
               title: `[SD] ${epicTitle}`,
               body: [
-                '## 功能說明',
-                '',
-                businessLogicContent,
-                '',
-                '## 設計範圍',
-                '<!-- SD 請填入本次工作範圍 -->',
-                '| # | 類型 | 說明 |',
-                '|---|------|------|',
-                '',
                 '## 關聯項目',
                 '',
                 '### 工作狀態',
