@@ -6,12 +6,13 @@
 執行任務前，先掃描 `./p1-design/` 目錄，了解現有系統設計：
 
 1. 讀取 `./p1-design/FunctionList.md` — 掌握現有功能清單
-2. 讀取 `./p1-design/schema/schema.md` — 了解現有資料模型
-3. 瀏覽 `./p1-design/Spec/` 目錄清單 — 了解現有 API 規格範疇
-4. 瀏覽 `./p1-design/Prototype/` 目錄清單 — 了解現有畫面設計範疇
+2. 讀取 `./p1-design/TechStack.md` — 了解前後端技術選型
+3. 讀取 `./p1-design/schema/schema.md` — 了解現有資料模型
+4. 瀏覽 `./p1-design/Spec/` 目錄清單 — 了解現有 API 規格範疇
+5. 瀏覽 `./p1-design/Prototype/` 目錄清單 — 了解現有畫面設計範疇
 
 根據 Epic 需求內容，判斷是否需要進一步讀取 Spec 或 Prototype 的特定檔案。
-分析時需與現有設計保持一致，避免資料模型或 API 命名衝突。
+分析時需與現有設計保持一致：若涉及新資料實體，先比對 schema.md 確認無同名 table；若涉及新 API，先比對 Spec/ 確認無重複路徑。
 
 ## 任務
 
