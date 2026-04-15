@@ -1,0 +1,96 @@
+name: A-Agent-Workflow
+
+on:
+  push:
+    branches:
+      - 'issue-*'
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  sa-worker:
+    # 只在 p-workflow scaffold SA 分析文件時觸發
+    if: contains(github.event.head_commit.message, 'scaffold SA 分析文件')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout SA branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract issue number from branch name
+        id: branch-info
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          ISSUE_NUMBER=$(echo "$BRANCH" | sed 's/issue-\([0-9]*\)-.*/\1/')
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "SA Issue #$ISSUE_NUMBER, Branch: $BRANCH"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Build prompt with issue number
+        id: build-prompt
+        run: |
+          ISSUE_NUMBER="${{ steps.branch-info.outputs.issue_number }}"
+          # 將 prompt 中的 ISSUE_NUMBER 替換為實際編號
+          sed "s/ISSUE_NUMBER/${ISSUE_NUMBER}/g" .github/prompts/sa-worker.md > /tmp/sa-prompt.txt
+          echo "Prompt built for issue #$ISSUE_NUMBER"
+          cat /tmp/sa-prompt.txt
+
+      - name: Run SA Worker Agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude --dangerously-skip-permissions --print "$(cat /tmp/sa-prompt.txt)"
+
+      - name: Commit business-logic.md
+        run: |
+          ISSUE_NUMBER="${{ steps.branch-info.outputs.issue_number }}"
+          BRANCH="${{ steps.branch-info.outputs.branch }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add "issue-${ISSUE_NUMBER}/business-logic.md"
+
+          # 如果沒有變更則跳過
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "docs(issue-${ISSUE_NUMBER}): SA 產出 business-logic.md
+
+          自動產出，對應 SA Issue #${ISSUE_NUMBER}"
+          git push origin "$BRANCH"
+
+      - name: Post comment to SA issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = parseInt('${{ steps.branch-info.outputs.issue_number }}');
+            const branch = '${{ steps.branch-info.outputs.branch }}';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: [
+                '🤖 SA 文件已自動產出，請至 branch 確認：',
+                `- 檔案：\`issue-${issueNumber}/business-logic.md\``,
+                `- Branch：\`${branch}\``,
+                '',
+                '確認無誤後請 merge。',
+              ].join('\n'),
+            });
