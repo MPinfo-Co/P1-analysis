@@ -22,6 +22,12 @@ jobs:
           ref: ${{ github.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Checkout P1-design（活文件）
+        uses: actions/checkout@v4
+        with:
+          repository: MPinfo-Co/P1-design
+          path: p1-design
+
       - name: Extract issue number from branch name
         id: branch-info
         run: |
