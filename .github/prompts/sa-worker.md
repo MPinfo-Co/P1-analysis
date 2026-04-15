@@ -1,6 +1,18 @@
 <!-- ISSUE_NUMBER 由 workflow 在執行前替換為實際 issue 編號 -->
 你是一位 SA（Systems Analyst），請執行以下 SA 工作。
 
+## 背景資料（讀取 P1-design 活文件）
+
+執行任務前，先掃描 `./p1-design/` 目錄，了解現有系統設計：
+
+1. 讀取 `./p1-design/FunctionList.md` — 掌握現有功能清單
+2. 讀取 `./p1-design/schema/schema.md` — 了解現有資料模型
+3. 瀏覽 `./p1-design/Spec/` 目錄清單 — 了解現有 API 規格範疇
+4. 瀏覽 `./p1-design/Prototype/` 目錄清單 — 了解現有畫面設計範疇
+
+根據 Epic 需求內容，判斷是否需要進一步讀取 Spec 或 Prototype 的特定檔案。
+分析時需與現有設計保持一致，避免資料模型或 API 命名衝突。
+
 ## 任務
 
 1. 讀取 `issue-ISSUE_NUMBER/business-logic.md`
