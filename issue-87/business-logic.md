@@ -1,115 +1,93 @@
 # 業務邏輯分析：[Epic] 登入功能
 
 ## 需求說明
-## 功能說明
+
 提供使用者以帳號密碼登入系統，取得存取權限，作為後續需身分識別功能的基礎。
 
-## 驗收條件
+### 驗收條件
+
 - 使用者可輸入帳號密碼並成功登入
 - 登入失敗顯示對應錯誤訊息
-- 登入成功後取得 session/token，後續 API 可驗證身分
+- 登入成功後取得 Token，後續 API 可驗證身分
 - 可登出並清除登入狀態
 
-## 商業邏輯（選填）
+---
 
-[以下由AI填寫，請務必逐行檢查..區塊一]
-
-### 登入流程
+## 登入流程
 
 ```
-使用者輸入 email + password
+使用者輸入 email + password → 點擊「登入」
         ↓
 後端查詢 users 表（依 email）
         ↓
-  ┌─────────────────────────────┐
-  │ email 不存在？              │→ 回傳錯誤：帳號或密碼錯誤
-  └─────────────────────────────┘
-        ↓ 存在
-  ┌─────────────────────────────┐
-  │ bcrypt 驗證密碼是否符合     │→ 不符合 → 回傳錯誤：帳號或密碼錯誤
-  └─────────────────────────────┘
-        ↓ 符合
-  ┌─────────────────────────────┐
-  │ is_active = FALSE？         │→ 回傳錯誤：帳號已停用
-  └─────────────────────────────┘
-        ↓ 啟用中
-  簽發 JWT Token（含 user_id、到期時間）
+  email 不存在 或 bcrypt 驗證失敗 或 is_active = FALSE
+        → 統一回傳 401「帳號或密碼錯誤」
+        ↓ 驗證通過
+  簽發 JWT（payload: user_id，時效 8 小時）
         ↓
-  回傳 Token → 前端 authStore (Zustand) 儲存
+  回傳 Token → 前端 authStore (Zustand) 儲存至 localStorage
         ↓
   導向首頁
 ```
 
-### 登出流程
+## 登出流程
 
 ```
-使用者點擊登出
+使用者點擊 Header 右側「登出」按鈕
         ↓
-後端將目前 JWT 加入 token_blacklist（使其失效）
+後端將目前 JWT 寫入 token_blacklist（含 expired_at）
         ↓
-前端清除 authStore 中的 Token
+前端清除 authStore + localStorage
         ↓
 導向登入頁
 ```
 
-### 後續 API 身分驗證規則
+## 後續 API 身分驗證（get_current_user guard）
 
-每支需要身分識別的 API，透過 `core/deps.py` 的 permission guard 執行以下驗證：
+每支需要身分識別的 API，透過 `core/deps.py` 執行：
 
-1. 解析 JWT Token → 取得 user_id
-2. 查詢 token_blacklist → Token 已在黑名單則拒絕（401）
-3. 查詢 users → is_active = FALSE 則拒絕（403）
-4. 驗證通過 → 注入 current_user 供下游使用
+1. 從 Authorization header 取得 Bearer Token
+2. 查詢 token_blacklist → 已在黑名單則拒絕（401）
+3. 解析 JWT → 無效或過期則拒絕（401）
+4. 查詢 users → 不存在或 is_active = FALSE 則拒絕（401）
+5. 驗證通過 → 注入 current_user 供下游使用
 
-### 錯誤訊息對應
+## 錯誤訊息對應
 
-| 情境 | HTTP 狀態碼 | 顯示訊息 |
+| 情境 | HTTP 狀態碼 | 回傳訊息 |
 |------|------------|---------|
-| email 不存在或密碼錯誤 | 401 | 帳號或密碼錯誤 |
-| 帳號已停用 | 403 | 帳號已停用，請聯絡管理員 |
-| Token 已失效（登出後重用） | 401 | 請重新登入 |
-| Token 過期 | 401 | 請重新登入 |
+| email 不存在 / 密碼錯誤 / 帳號停用 | 401 | 帳號或密碼錯誤 |
+| Token 已登出（在黑名單） | 401 | 請重新登入 |
+| Token 無效或過期 | 401 | 請重新登入 |
+| 使用者不存在或已停用（guard） | 401 | 請重新登入 |
 
-[以上由AI填寫，請務必逐行檢查..區塊二]
+---
 
-## 資料模型示意（選填）
-
-[以下由AI填寫，請務必逐行檢查..區塊一]
-
-登入流程涉及兩個資料實體：
+## 資料模型
 
 ```
 users
 ├── id (PK)
-├── email          ← 登入帳號
-├── password_hash  ← bcrypt 雜湊，由後端驗證
-└── is_active      ← FALSE 時禁止登入
+├── name           ← 顯示名稱
+├── email (UNIQUE) ← 登入帳號
+├── password_hash  ← bcrypt 雜湊
+├── is_active      ← FALSE 時禁止登入
+├── created_at
+└── updated_at
 
 token_blacklist（登出黑名單）
 ├── id (PK)
-├── token          ← 被登出的 JWT 字串（或 jti）
-└── expired_at     ← 可用於定期清理過期紀錄
+├── token (UNIQUE) ← 被登出的 JWT 字串
+├── expired_at     ← Token 原始到期時間，可用於定期清理
+└── created_at
 ```
 
-> `token_blacklist` 在 `models/token_blacklist.py` 已實作，schema.md 尚未補充，SD 實作時請確認欄位定義。
+> 兩張表在 P1-code 已有 model 實作，schema.md 需確認是否已收錄。
+> roles / user_roles 不在本次範圍。
 
-[以上由AI填寫，請務必逐行檢查..區塊二]
+---
 
-## SD 注意事項（選填）
-
-[以下由AI填寫，請務必逐行檢查..區塊一]
-
-1. **密碼雜湊**：一律使用 `bcrypt`，禁止明文或 MD5/SHA1 儲存密碼；驗證時透過 `core/security.py` 的 verify_password 函式。
-2. **JWT 自建**：系統採自建 JWT（非第三方 OAuth），Token 簽發、解析、到期時間設定皆在 `core/security.py`。
-3. **Token 黑名單（有狀態登出）**：登出須將 Token 寫入 `token_blacklist`，以支援強制失效；需定期清理已過期的黑名單紀錄，避免資料表無限成長。
-4. **前端 authStore**：使用 Zustand 管理登入狀態，Token 存於 store；需確認 Token 是否持久化（localStorage vs. memory），以決定重新整理頁面後的行為。
-5. **錯誤訊息一致性**：email 不存在與密碼錯誤須回傳相同訊息（帳號或密碼錯誤），避免帳號枚舉攻擊。
-
-[以上由AI填寫，請務必逐行檢查..區塊二]
-
-## 畫面示意（選填）
-
-[以下由AI填寫，請務必逐行檢查..區塊一]
+## 畫面示意
 
 ### 登入頁（Login Page）
 
@@ -128,20 +106,46 @@ token_blacklist（登出黑名單）
 │   └─────────────────────────────────┘   │
 │                                         │
 │   ┌─────────────────────────────────┐   │
-│   │           登入                  │   │  ← 點擊後 Button 顯示 Loading
+│   │           登入                  │   │ ← 點擊後顯示 Loading
 │   └─────────────────────────────────┘   │
 │                                         │
-│   ⚠ 帳號或密碼錯誤（登入失敗時顯示）   │
+│   ⚠ 帳號或密碼錯誤（登入失敗時顯示）    │
+│                                         │
 └─────────────────────────────────────────┘
 ```
+
+### 登出
+
+Header 右側紅色「登出」文字按鈕。
 
 ### 操作流程
 
 | 步驟 | 使用者動作 | 系統回應 |
 |------|-----------|---------|
 | 1 | 輸入 email + 密碼，點擊「登入」 | Button 轉為 Loading 狀態 |
-| 2a | （成功）後端回傳 Token | 導向首頁，authStore 儲存 Token |
-| 2b | （失敗）後端回傳錯誤 | 表單下方顯示錯誤訊息，欄位不清空 |
-| 3 | 於任意頁面點擊「登出」 | 清除 Token，導向登入頁 |
+| 2a | （成功） | authStore 存 Token 至 localStorage，導向首頁 |
+| 2b | （失敗） | 表單下方顯示錯誤訊息，欄位不清空 |
+| 3 | 於任意頁面點擊 Header「登出」 | 呼叫 /api/auth/logout，清除 localStorage + authStore，導向登入頁 |
 
-[以上由AI填寫，請務必逐行檢查..區塊二]
+---
+
+## SD 注意事項
+
+1. **密碼雜湊**：一律使用 bcrypt，驗證透過 `core/security.py` 的 `verify_password`
+2. **JWT 自建**：不使用第三方 OAuth，Token 簽發 / 解析 / 時效設定皆在 `core/security.py`
+3. **Token 黑名單**：登出須將 Token 寫入 `token_blacklist`；需考慮定期清理已過期紀錄
+4. **前端持久化**：Token 存 localStorage，頁面重新整理後自動還原登入狀態
+5. **錯誤訊息一致性**：登入失敗統一回 401 + 相同訊息，不區分 email 不存在 / 密碼錯 / 帳號停用
+
+---
+
+## SD-WBS
+
+| # | 類型 | 說明 |
+|---|------|------|
+| 1 | Schema | users 表、token_blacklist 表（確認 schema.md 定義） |
+| 2 | API | POST /api/auth/login（登入） |
+| 3 | API | POST /api/auth/logout（登出） |
+| 4 | API | get_current_user guard（身分驗證 dependency） |
+| 5 | 畫面 | 登入頁（Login Page） |
+| 6 | 畫面 | Header 登出按鈕 |
