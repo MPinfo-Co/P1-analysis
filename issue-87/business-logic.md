@@ -25,7 +25,7 @@
         ↓ 驗證通過
   簽發 JWT（Token 內容：使用者 ID，時效 8 小時）
         ↓
-  回傳 Token → 前端 authStore (Zustand) 儲存至 localStorage
+  回傳 Token → 前端儲存 Token 至 localStorage
         ↓
   導向首頁
 ```
@@ -37,7 +37,7 @@
         ↓
 後端將目前 JWT 寫入 token_blacklist（含 expired_at）
         ↓
-前端清除 authStore + localStorage
+前端清除 localStorage 中的 Token
         ↓
 導向登入頁
 ```
@@ -123,9 +123,9 @@ Header 右側紅色「登出」文字按鈕。
 | 步驟 | 使用者動作 | 系統回應 |
 |------|-----------|---------|
 | 1 | 輸入 email + 密碼，點擊「登入」 | Button 轉為 Loading 狀態 |
-| 2a | （成功） | authStore 存 Token 至 localStorage，導向首頁 |
+| 2a | （成功） | 儲存 Token 至 localStorage，導向首頁 |
 | 2b | （失敗） | 表單下方顯示錯誤訊息，欄位不清空 |
-| 3 | 於任意頁面點擊 Header「登出」 | 呼叫 /api/auth/logout，清除 localStorage + authStore，導向登入頁 |
+| 3 | 於任意頁面點擊 Header「登出」 | 呼叫 /api/auth/logout，清除 localStorage，導向登入頁 |
 
 ---
 
@@ -134,7 +134,7 @@ Header 右側紅色「登出」文字按鈕。
 1. **密碼雜湊**：一律使用 bcrypt，驗證透過 `core/security.py` 的 `verify_password`
 2. **JWT 自建**：不使用第三方 OAuth，Token 簽發 / 解析 / 時效設定皆在 `core/security.py`
 3. **Token 黑名單**：登出須將 Token 寫入 `token_blacklist`；需考慮定期清理已過期紀錄
-4. **前端持久化**：Token 存 localStorage，頁面重新整理後自動還原登入狀態
+4. **前端狀態管理**：使用 Zustand 的 authStore 管理登入狀態，Token 持久化至 localStorage，頁面重新整理後自動還原登入狀態
 5. **錯誤訊息一致性**：登入失敗統一回 401 + 相同訊息，不區分 email 不存在 / 密碼錯 / 帳號停用
 
 ---
