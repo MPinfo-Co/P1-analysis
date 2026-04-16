@@ -51,30 +51,6 @@
 
 ---
 
-## 資料模型
-
-```
-users
-├── id (PK)
-├── name           ← 顯示名稱
-├── email (UNIQUE) ← 登入帳號
-├── password_hash  ← bcrypt 雜湊
-├── is_active      ← FALSE 時禁止登入
-├── created_at
-└── updated_at
-
-token_blacklist（登出黑名單）
-├── id (PK)
-├── token (UNIQUE) ← 被登出的 JWT 字串
-├── expired_at     ← Token 原始到期時間，可用於定期清理
-└── created_at
-```
-
-> 兩張表在 P1-code 已有 model 實作，schema.md 需確認是否已收錄。
-> roles / user_roles 不在本次範圍。
-
----
-
 ## 畫面示意
 
 ### 登入頁（Login Page）
@@ -104,7 +80,7 @@ token_blacklist（登出黑名單）
 
 ### 登出
 
-Header 右側紅色「登出」文字按鈕。
+頁面頂部右側紅色「登出」文字按鈕。
 
 ### 操作流程
 
@@ -113,9 +89,30 @@ Header 右側紅色「登出」文字按鈕。
 | 1 | 輸入 email + 密碼，點擊「登入」 | Button 轉為 Loading 狀態 |
 | 2a | （成功） | 儲存 Token，導向首頁 |
 | 2b | （失敗） | 表單下方顯示錯誤訊息，欄位不清空 |
-| 3 | 於任意頁面點擊 Header「登出」 | 清除 Token，導向登入頁 |
+| 3 | 於任意頁面點擊頂部「登出」 | 清除 Token，導向登入頁 |
 
 ---
+
+## 資料模型
+
+```
+users
+├── id (PK)
+├── name           ← 顯示名稱
+├── email (UNIQUE) ← 登入帳號
+├── password_hash  ← bcrypt 雜湊
+├── is_active      ← FALSE 時禁止登入
+├── created_at
+└── updated_at
+
+token_blacklist（登出黑名單）
+├── id (PK)
+├── token (UNIQUE) ← 被登出的 JWT 字串
+├── expired_at     ← Token 原始到期時間，可用於定期清理
+└── created_at
+```
+
+> 兩張表在 P1-code 已有 model 實作，schema.md 需確認是否已收錄。
 
 ## SD 注意事項
 
@@ -125,8 +122,6 @@ Header 右側紅色「登出」文字按鈕。
 4. **前端狀態管理**：使用 Zustand 的 authStore 管理登入狀態，Token 持久化至 localStorage，頁面重新整理後自動還原登入狀態
 5. **錯誤訊息一致性**：登入失敗統一回 401 + 相同訊息，不區分 email 不存在 / 密碼錯 / 帳號停用
 6. **API 身分驗證 guard**：透過 `core/deps.py` 的 `get_current_user` 執行——從 Authorization header 取得 Bearer Token → 查 token_blacklist → 解析 JWT → 查 users 是否存在且啟用 → 注入 current_user
-
----
 
 ## SD-WBS
 
