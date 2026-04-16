@@ -33,7 +33,7 @@
 ## 登出流程
 
 ```
-使用者點擊 Header 右側「登出」按鈕
+使用者點擊頁面頂部右側「登出」按鈕
         ↓
 後端將目前 Token 標記為失效
         ↓
@@ -42,24 +42,12 @@
 導向登入頁
 ```
 
-## 後續 API 身分驗證（get_current_user guard）
-
-每支需要身分識別的 API，透過 `core/deps.py` 執行：
-
-1. 從 Authorization header 取得 Bearer Token
-2. 查詢 token_blacklist → 已在黑名單則拒絕（401）
-3. 解析 JWT → 無效或過期則拒絕（401）
-4. 查詢 users → 不存在或 is_active = FALSE 則拒絕（401）
-5. 驗證通過 → 注入 current_user 供下游使用
-
 ## 錯誤訊息對應
 
 | 情境 | HTTP 狀態碼 | 回傳訊息 |
 |------|------------|---------|
-| email 不存在 / 密碼錯誤 / 帳號停用 | 401 | 帳號或密碼錯誤 |
-| Token 已登出（在黑名單） | 401 | 請重新登入 |
-| Token 無效或過期 | 401 | 請重新登入 |
-| 使用者不存在或已停用（guard） | 401 | 請重新登入 |
+| 帳號不存在 / 密碼錯誤 / 帳號停用 | 401 | 帳號或密碼錯誤 |
+| Token 已失效或過期 | 401 | 請重新登入 |
 
 ---
 
@@ -93,11 +81,11 @@ token_blacklist（登出黑名單）
 
 ```
 ┌─────────────────────────────────────────┐
-│              MP-BOX                     │
+│                 MP-BOX                  │
 │                                         │
 │   Email                                 │
 │   ┌─────────────────────────────────┐   │
-│   │ user@example.com                │   │
+│   │ admin@mpinfo.com.tw             │   │
 │   └─────────────────────────────────┘   │
 │                                         │
 │   密碼                                  │
@@ -136,6 +124,7 @@ Header 右側紅色「登出」文字按鈕。
 3. **Token 黑名單**：登出須將 Token 寫入 `token_blacklist`；需考慮定期清理已過期紀錄
 4. **前端狀態管理**：使用 Zustand 的 authStore 管理登入狀態，Token 持久化至 localStorage，頁面重新整理後自動還原登入狀態
 5. **錯誤訊息一致性**：登入失敗統一回 401 + 相同訊息，不區分 email 不存在 / 密碼錯 / 帳號停用
+6. **API 身分驗證 guard**：透過 `core/deps.py` 的 `get_current_user` 執行——從 Authorization header 取得 Bearer Token → 查 token_blacklist → 解析 JWT → 查 users 是否存在且啟用 → 注入 current_user
 
 ---
 
