@@ -55,7 +55,7 @@
 
 ## 畫面示意
 
-詳見 [P1-design/Prototype/](https://github.com/MPinfo-Co/P1-design/tree/main/Prototype)
+詳見 [P1-design/Prototype/MP-Box_資安專家_v73_claude.html](https://github.com/MPinfo-Co/P1-design/tree/main/Prototype/MP-Box_資安專家_v73_claude.html)
 
 ---
 
