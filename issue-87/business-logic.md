@@ -23,7 +23,7 @@
   email 不存在 或 bcrypt 驗證失敗 或 is_active = FALSE
         → 統一回傳 401「帳號或密碼錯誤」
         ↓ 驗證通過
-  簽發 JWT（payload: user_id，時效 8 小時）
+  簽發 JWT（Token 內容：使用者 ID，時效 8 小時）
         ↓
   回傳 Token → 前端 authStore (Zustand) 儲存至 localStorage
         ↓
