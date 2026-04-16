@@ -55,30 +55,30 @@
 
 ## 畫面示意
 
-詳見 P1-design：[Spec/auth/auth_01_login.md](https://github.com/MPinfo-Co/P1-design/blob/main/Spec/auth/auth_01_login.md)
+詳見 [P1-design/Prototype/](https://github.com/MPinfo-Co/P1-design/tree/main/Prototype)
 
 ---
 
 ## 資料模型
 
-涉及 `users`、`token_blacklist` 兩張表，詳見 P1-design：[schema/schema.md](https://github.com/MPinfo-Co/P1-design/blob/main/schema/schema.md)
+涉及 `users`、`token_blacklist` 兩張表，詳見 [P1-design/schema/schema.md](https://github.com/MPinfo-Co/P1-design/blob/main/schema/schema.md)
 
 ## SD 注意事項
 
-1. **密碼雜湊**：一律使用 bcrypt，驗證透過 `core/security.py` 的 `verify_password`
-2. **JWT 自建**：不使用第三方 OAuth，Token 簽發 / 解析 / 時效設定皆在 `core/security.py`
-3. **Token 黑名單**：登出須將 Token 寫入 `token_blacklist`；需考慮定期清理已過期紀錄
-4. **前端狀態管理**：使用 Zustand 的 authStore 管理登入狀態，Token 持久化至 localStorage，頁面重新整理後自動還原登入狀態
-5. **錯誤訊息一致性**：登入失敗統一回 401 + 相同訊息，不區分 email 不存在 / 密碼錯 / 帳號停用
-6. **API 身分驗證 guard**：透過 `core/deps.py` 的 `get_current_user` 執行——從 Authorization header 取得 Bearer Token → 查 token_blacklist → 解析 JWT → 查 users 是否存在且啟用 → 注入 current_user
+1. 密碼儲存使用 bcrypt 單向雜湊
+2. Token 採自建 JWT，不使用第三方 OAuth
+3. 登出須有 Token 黑名單機制，需考慮定期清理
+4. 前端 Token 需持久化，頁面重新整理後維持登入狀態
+5. 登入失敗統一回 401 + 相同訊息，避免洩漏帳號是否存在
+6. 需設計 API 身分驗證機制，供後續需要登入的 API 共用
 
 ## SD-WBS
 
-| # | 類型 | 說明 |
-|---|------|------|
-| 1 | Schema | users 表、token_blacklist 表（確認 schema.md 定義） |
-| 2 | API | POST /api/auth/login（登入） |
-| 3 | API | POST /api/auth/logout（登出） |
-| 4 | API | get_current_user guard（身分驗證 dependency） |
-| 5 | 畫面 | 登入頁（Login Page） |
-| 6 | 畫面 | Header 登出按鈕 |
+| #   | 類型        | 說明             |
+| --- | --------- | -------------- |
+| 1   | Schema    | 使用者表、token黑名單表 |
+| 2   | API       | 登入             |
+| 3   | API       | 登出             |
+| 4   | API       | 身分驗證機制 (共用)    |
+| 5   | Prototype | 登入頁            |
+| 6   | Prototype | 頁面頂部右側的登出按鈕    |
