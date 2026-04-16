@@ -61,24 +61,7 @@
 
 ## 資料模型
 
-```
-users
-├── id (PK)
-├── name           ← 顯示名稱
-├── email (UNIQUE) ← 登入帳號
-├── password_hash  ← bcrypt 雜湊
-├── is_active      ← FALSE 時禁止登入
-├── created_at
-└── updated_at
-
-token_blacklist（登出黑名單）
-├── id (PK)
-├── token (UNIQUE) ← 被登出的 JWT 字串
-├── expired_at     ← Token 原始到期時間，可用於定期清理
-└── created_at
-```
-
-> 兩張表在 P1-code 已有 model 實作，schema.md 需確認是否已收錄。
+涉及 `users`、`token_blacklist` 兩張表，詳見 P1-design：[schema/schema.md](https://github.com/MPinfo-Co/P1-design/blob/main/schema/schema.md)
 
 ## SD 注意事項
 
