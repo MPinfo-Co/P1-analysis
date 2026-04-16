@@ -1,8 +1,8 @@
-# 業務邏輯分析：[Epic] 登入功能
+# 業務邏輯分析：[SA] 登入功能
 
 ## 需求說明
 
-提供使用者以帳號密碼登入系統，取得存取權限，作為後續需身分識別功能的基礎。
+使用者以帳號密碼登入系統，登入後能使用需要驗證身分的功能
 
 ### 驗收條件
 
@@ -18,14 +18,14 @@
 ```
 使用者輸入 email + password → 點擊「登入」
         ↓
-後端查詢 users 表（依 email）
+後端驗證帳號密碼
         ↓
-  email 不存在 或 bcrypt 驗證失敗 或 is_active = FALSE
+  驗證失敗（帳號不存在 / 密碼錯誤 / 帳號已停用）
         → 統一回傳 401「帳號或密碼錯誤」
         ↓ 驗證通過
-  簽發 JWT（Token 內容：使用者 ID，時效 8 小時）
+  簽發 Token（內容：使用者 ID，時效 8 小時）
         ↓
-  回傳 Token → 前端儲存 Token 至 localStorage
+  回傳 Token → 前端儲存 Token
         ↓
   導向首頁
 ```
@@ -35,9 +35,9 @@
 ```
 使用者點擊 Header 右側「登出」按鈕
         ↓
-後端將目前 JWT 寫入 token_blacklist（含 expired_at）
+後端將目前 Token 標記為失效
         ↓
-前端清除 localStorage 中的 Token
+前端清除已儲存的 Token
         ↓
 導向登入頁
 ```
@@ -123,9 +123,9 @@ Header 右側紅色「登出」文字按鈕。
 | 步驟 | 使用者動作 | 系統回應 |
 |------|-----------|---------|
 | 1 | 輸入 email + 密碼，點擊「登入」 | Button 轉為 Loading 狀態 |
-| 2a | （成功） | 儲存 Token 至 localStorage，導向首頁 |
+| 2a | （成功） | 儲存 Token，導向首頁 |
 | 2b | （失敗） | 表單下方顯示錯誤訊息，欄位不清空 |
-| 3 | 於任意頁面點擊 Header「登出」 | 呼叫 /api/auth/logout，清除 localStorage，導向登入頁 |
+| 3 | 於任意頁面點擊 Header「登出」 | 清除 Token，導向登入頁 |
 
 ---
 
