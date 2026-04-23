@@ -5,8 +5,8 @@
 
 執行任務前，先掃描 `./p1-design/` 目錄，了解現有系統設計：
 
-1. 讀取 `./p1-design/FunctionList.md` — 掌握現有功能清單
-2. 讀取 `./p1-design/TechStack.md` — 了解前後端技術選型
+1. 讀取 `./p1-design/functionList.md` — 掌握現有功能清單
+2. 讀取 `./p1-design/techStack.md` — 了解前後端技術選型
 3. 讀取 `./p1-design/schema/schema.md` — 了解現有資料模型
 4. 瀏覽 `./p1-design/Spec/` 目錄清單 — 了解現有 API 規格範疇
 5. 瀏覽 `./p1-design/Prototype/` 目錄清單 — 了解現有畫面設計範疇
